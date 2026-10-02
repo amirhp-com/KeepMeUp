@@ -24,5 +24,9 @@ cd "$DIST"
 rm -f "$APP_NAME.zip"
 ditto -c -k --keepParent "$APP_NAME.app" "$APP_NAME.zip"
 
+if [ -f "${KEEPMEUP_KEY:-$HOME/.config/keepmeup/ed25519.key}" ]; then
+    swift "$ROOT/scripts/release-key.swift" sign "$DIST/$APP_NAME.zip"
+fi
+
 echo "Built $APP"
 lipo -info "$APP/Contents/MacOS/$APP_NAME"
