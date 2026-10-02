@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Security
 
 final class Updater: ObservableObject {
     static let shared = Updater()
@@ -109,7 +110,9 @@ final class Updater: ObservableObject {
         guard Bundle(url: app)?.bundleIdentifier == Bundle.main.bundleIdentifier else {
             throw UpdateError.message("The download doesn't look like KeepMeUp")
         }
-        PowerActions.run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", app.path])
+        guard Self.hasValidSignature(app) else {
+            throw UpdateError.message("The update's code signature couldn't be verified")
+        }
         return app
     }
 
@@ -136,6 +139,16 @@ final class Updater: ObservableObject {
         } catch {
             phase = .failed(error.localizedDescription)
         }
+    }
+
+    private static func hasValidSignature(_ app: URL) -> Bool {
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code else { return false }
+        var requirement: SecRequirement?
+        let text = "identifier \"\(Bundle.main.bundleIdentifier ?? "com.amirhp.KeepMeUp")\"" as CFString
+        guard SecRequirementCreateWithString(text, [], &requirement) == errSecSuccess else { return false }
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
+        return SecStaticCodeCheckValidityWithErrors(code, flags, requirement, nil) == errSecSuccess
     }
 
     private static func parse(_ data: Data) -> Release? {
