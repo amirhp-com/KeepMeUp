@@ -163,10 +163,23 @@ final class TelegramBot: ObservableObject {
               chat.isPrivate || chat.isGroup,
               let from = message["from"] as? [String: Any],
               let senderID = (from["id"] as? NSNumber)?.int64Value,
-              from["is_bot"] as? Bool != true,
-              let text = message["text"] as? String,
-              text.hasPrefix("/") else { return }
+              from["is_bot"] as? Bool != true else { return }
         if chat.isPrivate && senderID != chat.id { return }
+
+        if let document = message["document"] as? [String: Any] {
+            let allowed = await MainActor.run { isAuthorized(chat: chat, senderID: senderID) }
+            let enabled = await MainActor.run { Preferences.shared.isEnabled(.upload) }
+            if allowed {
+                if enabled {
+                    await receiveUpload(document, chatID: chat.id)
+                } else {
+                    try? await send("🚫 /upload is turned off. Turn it on in KeepMeUp → Settings → Commands.", to: chat.id)
+                }
+            }
+            return
+        }
+
+        guard let text = message["text"] as? String, text.hasPrefix("/") else { return }
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let head = trimmed.split(separator: " ", maxSplits: 1).first.map(String.init) ?? trimmed
@@ -306,6 +319,31 @@ final class TelegramBot: ObservableObject {
                 return had
             }
             await reply(had ? "🛑 Timer cancelled." : "No timer is running.")
+        case .caffeinate:
+            guard !argument.isEmpty else { return await reply("Usage: /caffeinate <app>\nKeeps the Mac awake only while that app is running.\nExample: /caffeinate Final Cut Pro") }
+            let linked = await MainActor.run { AwakeManager.shared.caffeinate(whileRunning: argument) }
+            if let linked {
+                await reply("☕️ Keeping \(SystemInfo.hostName()) awake while \(linked) is running. It stops on its own when \(linked) quits.")
+            } else {
+                await reply("⚠️ “\(argument)” isn't running. Open it first, or send /apps to see what's running.")
+            }
+        case .schedules:
+            let items = await MainActor.run { ScheduleStore.shared.actions }
+            guard !items.isEmpty else { return await reply("🗓 No scheduled actions.\nAdd one with /schedule, e.g. /schedule 01:00 sleep weekdays") }
+            let lines = items.enumerated().map { i, a in "\(i + 1). \(a.describe)\(a.enabled ? "" : " (off)")  /unschedule_\(i + 1)" }
+            await reply("🗓 Scheduled actions\n\n" + lines.joined(separator: "\n"))
+        case .schedule:
+            await addSchedule(args, chatID: chatID)
+        case .unschedule:
+            let items = await MainActor.run { ScheduleStore.shared.actions }
+            guard let n = args.first.flatMap(Int.init), n >= 1, n <= items.count else {
+                return await reply("Usage: /unschedule <number from /schedules>")
+            }
+            let removed = items[n - 1]
+            await MainActor.run { ScheduleStore.shared.remove(removed.id) }
+            await reply("🗑 Removed: \(removed.describe)")
+        case .upload:
+            await reply("📥 Send me a file (as a document) and I'll save it to your Downloads folder.")
         case .displayoff:
             await reply("🌑 Turning the display off.")
             await perform(.displayOff)
@@ -567,6 +605,61 @@ final class TelegramBot: ObservableObject {
         }
         let url = RemoteTools.expand(argument)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private func addSchedule(_ args: [String], chatID: Int64) async {
+        guard args.count >= 2 else {
+            return try! await send("Usage: /schedule <time> <action> [weekdays]\nActions: off, displayoff, screensaver, lock, sleep, restart, shutdown\nExample: /schedule 01:00 sleep weekdays", to: chatID)
+        }
+        let pieces = args[0].split(separator: ":")
+        guard pieces.count == 2, let hour = Int(pieces[0]), let minute = Int(pieces[1]), (0...23).contains(hour), (0...59).contains(minute) else {
+            return try! await send("⚠️ Use a 24-hour time like 01:00 or 18:30.", to: chatID)
+        }
+        guard let action = PowerAction.from(keyword: args[1]) else {
+            return try! await send("⚠️ Unknown action “\(args[1])”. Try off, displayoff, screensaver, lock, sleep, restart or shutdown.", to: chatID)
+        }
+        let weekdays = args.count > 2 && ["weekday", "weekdays", "wd"].contains(args[2].lowercased())
+        let item = ScheduledAction(action: action, hour: hour, minute: minute, weekdaysOnly: weekdays)
+        await MainActor.run { ScheduleStore.shared.add(item) }
+        try? await send("🗓 Scheduled: \(item.describe).", to: chatID)
+    }
+
+    private func receiveUpload(_ document: [String: Any], chatID: Int64) async {
+        guard let fileID = document["file_id"] as? String else { return }
+        let size = (document["file_size"] as? NSNumber)?.int64Value ?? 0
+        if size > 2 * 1024 * 1024 * 1024 {
+            try? await send("⚠️ That file is larger than Telegram lets bots download (2 GB).", to: chatID)
+            return
+        }
+        let name = (document["file_name"] as? String) ?? "upload-\(Int(Date().timeIntervalSince1970))"
+        _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "typing"])
+        do {
+            let info = try await call("getFile", ["file_id": fileID])
+            guard let path = info["file_path"] as? String, let token else { throw BotError.message("Telegram didn't return a file path") }
+            guard let url = URL(string: "https://api.telegram.org/file/bot\(token)/\(path)") else { throw BotError.message("Bad file URL") }
+            let (location, _) = try await session.download(from: url)
+            let saved = try saveToDownloads(location, suggestedName: name)
+            try? await send("📥 Saved to Downloads as \(saved.lastPathComponent).", to: chatID)
+        } catch {
+            try? await send("⚠️ Couldn't save that file: \(redact(error.localizedDescription))", to: chatID)
+        }
+    }
+
+    private func saveToDownloads(_ source: URL, suggestedName: String) throws -> URL {
+        let fm = FileManager.default
+        let downloads = fm.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+        let safeName = (suggestedName as NSString).lastPathComponent.replacingOccurrences(of: "/", with: "-")
+        var target = downloads.appendingPathComponent(safeName.isEmpty ? "upload" : safeName)
+        let base = target.deletingPathExtension().lastPathComponent
+        let ext = target.pathExtension
+        var counter = 1
+        while fm.fileExists(atPath: target.path) {
+            let numbered = ext.isEmpty ? "\(base) (\(counter))" : "\(base) (\(counter)).\(ext)"
+            target = downloads.appendingPathComponent(numbered)
+            counter += 1
+        }
+        try fm.moveItem(at: source, to: target)
+        return target
     }
 
     private func sendFile(_ url: URL, to chatID: Int64) async {
