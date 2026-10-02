@@ -29,7 +29,7 @@
   - lock the screen
   - sleep, restart or shut down
 - **Quick actions.** Display off, screensaver, lock and sleep, one click each from the menu.
-- **Telegram remote control.** Turn it on or off, set timers, lock, sleep, shut down, take a screenshot or check the battery from your phone.
+- **Telegram remote control.** From your phone you can turn it on or off, set timers, lock, sleep, shut down, take screenshots, show the desktop, open and quit apps, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
 - **Private by design.** Your bot token stays in the macOS Keychain, and only chats you approve can send commands. There are no servers, analytics or accounts.
 - **Launch at login**, and keep-awake can resume after a restart.
 - **Universal binary.** Built natively for M-series chips, and runs on Intel Macs too.
@@ -62,10 +62,19 @@ The script builds a universal `arm64` + `x86_64` binary, packages `dist/KeepMeUp
 ## Telegram remote control
 
 1. In Telegram, open [@BotFather](https://t.me/BotFather), send `/newbot` and copy the token it gives you.
-2. In KeepMeUp, open **Settings… → Telegram**, paste the token and switch on **Enable Telegram control**.
-3. Send `/pair` to your new bot, then click **Allow** in the prompt that appears on your Mac.
+2. In KeepMeUp, open **Settings… → Telegram**, paste the token, switch on **Enable Telegram control** and click **Save & Connect**.
+3. Follow the **Get started** steps: click **Open in Telegram**, tap **Start**, then click **Allow** on your Mac.
+4. The bot replies with every command, and the menu next to the message box lists them too.
 
-Only approved private chats can control the Mac. Groups, channels and every other chat are ignored. To pair another device later, click **Allow a new /pair for 5 minutes**. You can also add or remove chat IDs by hand.
+Only approved chats can control the Mac. Each paired chat shows up in Settings with its name, username and type (private chat, group or channel).
+
+- **Private chats** are paired with `/start`.
+- **Groups:** add the bot to the group and send `/pair` there. Only people who have already paired with the bot privately can send commands in the group.
+- **Pairing closes** after your first chat is approved, so strangers who find your bot can't ask for access. To add another chat, click **Pair another chat**, which opens pairing for 5 minutes.
+
+### Commands
+
+You can turn any command on or off in **Settings → Commands**. Commands that are off are hidden from the bot menu and refused. Commands marked 🛡 can read files or run code, so they start turned off.
 
 | Command | What it does |
 | --- | --- |
@@ -78,11 +87,21 @@ Only approved private chats can control the Mac. Groups, channels and every othe
 | `/screensaver` | Starts the screensaver |
 | `/lock` | Locks the screen |
 | `/sleep` | Puts the Mac to sleep |
-| `/restart` | Restarts (asks you to confirm first) |
-| `/shutdown` | Shuts down (asks you to confirm first) |
+| `/restart` · `/shutdown` | Restarts or shuts down (asks you to confirm first) |
+| `/desktop` | Hides every app so the desktop shows |
+| `/show` | Brings the hidden apps back |
 | `/screenshot` | Sends a screenshot of every display |
 | `/info` | Shows battery, uptime, load, memory and disk |
-| `/help` | Lists all commands |
+| `/apps` | Lists running apps |
+| `/open <app>` | Launches an app (`/open Safari`) |
+| `/quit <app> [--force]` | Quits an app, or force quits it |
+| `/terminal` | Opens Terminal |
+| `/term <command>` 🛡 | Runs a command in a Terminal window and sends a screenshot |
+| `/run <command>` 🛡 | Runs a shell command and replies with the output (60-second limit; long output arrives as a file) |
+| `/find <name>` 🛡 | Searches your home folder with Spotlight and lists numbered results |
+| `/get <path or number>` 🛡 | Sends a file to the chat (folders are zipped; Telegram's limit is 50 MB) |
+| `/openfile <path or number>` 🛡 | Opens a file on the Mac |
+| `/help` | Lists the commands that are turned on |
 
 Durations can be written as `30` (minutes), `45m`, `2h`, `1h30m`, `90s` or `1:30`.
 
@@ -91,6 +110,7 @@ Durations can be written as `30` (minutes), `45m`, `2h`, `1h30m`, `90s` or `1:30
 | Permission | Needed for | Where |
 | --- | --- | --- |
 | Automation → System Events | Restart and shut down | Asked the first time you use them |
+| Automation → Terminal | `/term` | Asked the first time you use it |
 | Screen Recording | `/screenshot` | System Settings → Privacy & Security → Screen Recording |
 
 Keeping the Mac awake, display off, screensaver, lock and sleep don't need any permission.
