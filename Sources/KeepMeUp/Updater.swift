@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 import Security
 
@@ -9,6 +10,7 @@ final class Updater: ObservableObject {
         let version: String
         let page: URL
         let download: URL?
+        let signature: URL?
         let notes: String
     }
 
@@ -78,23 +80,35 @@ final class Updater: ObservableObject {
     }
 
     func install() {
-        guard let latest, let download = latest.download else {
+        guard let latest, let download = latest.download, let signatureURL = latest.signature else {
             if let page = latest?.page { NSWorkspace.shared.open(page) }
             return
         }
         phase = .downloading
-        URLSession.shared.downloadTask(with: download) { location, _, error in
-            guard let location else {
-                DispatchQueue.main.async { self.phase = .failed(error?.localizedDescription ?? "Download failed") }
-                return
-            }
+        Task {
             do {
+                let (signatureData, _) = try await URLSession.shared.data(from: signatureURL)
+                let (location, _) = try await URLSession.shared.download(from: download)
+                let archive = try Data(contentsOf: location)
+                guard Self.verify(archive, signature: signatureData) else {
+                    try? FileManager.default.removeItem(at: location)
+                    throw UpdateError.message("The update isn't signed by KeepMeUp's release key")
+                }
                 let app = try self.unpack(location)
-                DispatchQueue.main.async { self.replaceAndRelaunch(with: app) }
+                await MainActor.run { self.replaceAndRelaunch(with: app) }
             } catch {
-                DispatchQueue.main.async { self.phase = .failed(error.localizedDescription) }
+                await MainActor.run { self.phase = .failed(error.localizedDescription) }
             }
-        }.resume()
+        }
+    }
+
+    static func verify(_ data: Data, signature: Data) -> Bool {
+        guard let keyText = Bundle.main.object(forInfoDictionaryKey: "KMUPublicEDKey") as? String,
+              let keyData = Data(base64Encoded: keyText),
+              let key = try? Curve25519.Signing.PublicKey(rawRepresentation: keyData),
+              let text = String(data: signature, encoding: .utf8),
+              let raw = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        return key.isValidSignature(raw, for: data)
     }
 
     private func unpack(_ zip: URL) throws -> URL {
@@ -158,8 +172,10 @@ final class Updater: ObservableObject {
         let assets = json["assets"] as? [[String: Any]] ?? []
         let zip = assets.first { ($0["name"] as? String)?.hasSuffix(".zip") == true }
         let download = (zip?["browser_download_url"] as? String).flatMap(URL.init(string:))
+        let sig = assets.first { ($0["name"] as? String)?.hasSuffix(".zip.sig") == true }
+        let signature = (sig?["browser_download_url"] as? String).flatMap(URL.init(string:))
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-        return Release(version: version, page: page, download: download, notes: json["body"] as? String ?? "")
+        return Release(version: version, page: page, download: download, signature: signature, notes: json["body"] as? String ?? "")
     }
 
     static func isNewer(_ candidate: String, than current: String) -> Bool {
