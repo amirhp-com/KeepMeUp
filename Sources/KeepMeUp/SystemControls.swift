@@ -80,7 +80,7 @@ enum SystemControls {
     static func speak(_ text: String) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
-        process.arguments = [text]
+        process.arguments = ["--", text]
         try? process.run()
     }
 
