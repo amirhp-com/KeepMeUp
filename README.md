@@ -142,6 +142,8 @@ swift scripts/release-key.swift generate   # once; prints the public key for Inf
 gh release create vX.Y.Z dist/KeepMeUp.zip dist/KeepMeUp.zip.sig
 ```
 
+If a code signing certificate named **KeepMeUp Release** is in your keychain, the build script uses it. A self-signed one works. Keeping the same certificate across releases means macOS remembers permissions like Screen Recording after updates, because the ad-hoc signature changes with every build and macOS treats each build as a new app.
+
 The private key stays in `~/.config/keepmeup/ed25519.key`. Back it up, because if it's lost, existing installs can't verify new releases.
 
 ## Contributing
