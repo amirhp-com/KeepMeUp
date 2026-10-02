@@ -23,6 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         TelegramBot.shared.startIfEnabled()
         Updater.shared.startAutomaticChecks()
+        ScheduleStore.shared.start()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            AlertMonitor.shared.start()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
