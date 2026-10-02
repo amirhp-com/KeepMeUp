@@ -18,6 +18,9 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 cd "$ROOT"
+if [ -z "${SIGN_IDENTITY:-}" ] && security find-certificate -c "KeepMeUp Release" >/dev/null 2>&1; then
+    SIGN_IDENTITY="KeepMeUp Release"
+fi
 codesign --force --deep --options runtime --entitlements Resources/KeepMeUp.entitlements --sign "${SIGN_IDENTITY:--}" "$APP"
 
 cd "$DIST"
