@@ -367,11 +367,51 @@ extension StepRow where Accessory == EmptyView {
     }
 }
 
+struct PermissionRow: View {
+    let permission: AppPermission
+    @ObservedObject private var permissions = Permissions.shared
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: permission.symbol)
+                .frame(width: 20)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(permission.title).font(.system(size: 12.5, weight: .medium))
+                Text(permission.detail).font(.caption2).foregroundStyle(.secondary)
+            }
+            Spacer()
+            let state = permissions.state(permission)
+            if state == .granted {
+                Label("Allowed", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .labelStyle(.titleAndIcon)
+            } else {
+                Button(state == .denied ? "Open Settings" : "Grant") {
+                    permissions.request(permission)
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+}
+
 struct CommandsSettingsView: View {
     @ObservedObject private var prefs = Preferences.shared
 
     var body: some View {
         Form {
+            Section {
+                ForEach(AppPermission.allCases) { PermissionRow(permission: $0) }
+            } header: {
+                Label("Permissions", systemImage: "hand.raised")
+            } footer: {
+                Text("Grant what the commands you use need. macOS asks you to confirm each one, then adds KeepMeUp to that list in System Settings → Privacy & Security.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Section {
                 Text("Choose what your paired chats can do. Turned-off commands disappear from the bot menu and are refused. Commands marked with a shield can see your screen, read files or run code on this Mac, so turning one on asks for your password or Touch ID.")
                     .font(.caption)
@@ -414,6 +454,7 @@ struct CommandsSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(height: 560)
+        .onAppear { Permissions.shared.refresh() }
     }
 }
 
