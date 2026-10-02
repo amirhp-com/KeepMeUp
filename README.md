@@ -17,6 +17,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
 </p>
 
+<p align="center">
+  <a href="https://amirhp-com.github.io/KeepMeUp/"><b>Website</b></a> · <a href="https://github.com/amirhp-com/KeepMeUp/releases/latest/download/KeepMeUp.zip"><b>Download</b></a>
+</p>
+
 ---
 
 ## Features
