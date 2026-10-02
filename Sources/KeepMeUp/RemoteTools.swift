@@ -79,6 +79,51 @@ enum RemoteTools {
             .sorted { ($0.localizedName ?? "") .localizedCaseInsensitiveCompare($1.localizedName ?? "") == .orderedAscending }
     }
 
+    struct InstalledApp {
+        let name: String
+        let url: URL
+    }
+
+    static func installedApps() -> [InstalledApp] {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        let roots = ["/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities", "\(home)/Applications"]
+        var seen = Set<String>()
+        var apps: [InstalledApp] = []
+
+        func collect(_ folder: String, depth: Int) {
+            guard let items = try? fm.contentsOfDirectory(atPath: folder) else { return }
+            for item in items where !item.hasPrefix(".") {
+                let path = (folder as NSString).appendingPathComponent(item)
+                if item.hasSuffix(".app") {
+                    let name = String(item.dropLast(4))
+                    if seen.insert(name.lowercased()).inserted {
+                        apps.append(InstalledApp(name: name, url: URL(fileURLWithPath: path)))
+                    }
+                } else if depth > 0 {
+                    var isFolder: ObjCBool = false
+                    if fm.fileExists(atPath: path, isDirectory: &isFolder), isFolder.boolValue, !roots.contains(path) {
+                        collect(path, depth: depth - 1)
+                    }
+                }
+            }
+        }
+
+        for root in roots { collect(root, depth: 1) }
+        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    static func open(_ app: InstalledApp) {
+        NSWorkspace.shared.openApplication(at: app.url, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    static func quit(pid: pid_t, force: Bool) -> String? {
+        guard let app = NSRunningApplication(processIdentifier: pid) else { return nil }
+        let title = app.localizedName ?? "App"
+        _ = force ? app.forceTerminate() : app.terminate()
+        return title
+    }
+
     static func findRunningApp(_ name: String) -> NSRunningApplication? {
         let query = name.lowercased()
         let apps = runningApps()
