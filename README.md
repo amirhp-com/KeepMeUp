@@ -33,8 +33,9 @@
   - lock the screen
   - sleep, restart or shut down
 - **Quick actions.** Display off, screensaver, lock and sleep, one click each from the menu.
-- **Telegram remote control.** From your phone you can turn it on or off, set timers, lock, sleep, shut down, take screenshots, show the desktop, open and quit apps, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
-- **Private by design.** Your bot token is stored in a file only your user account can read, and only chats you approve can send commands. Turning on a sensitive command asks for your password or Touch ID. There are no servers, analytics or accounts.
+- **Telegram remote control.** From your phone you can keep it awake, set timers, lock, sleep and shut down, take screenshots and camera photos, show the desktop, open and quit apps, control volume and media, adjust brightness, read or set the clipboard, check Wi-Fi and IP, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
+- **Alerts and schedules.** Get a Telegram message when the battery runs low, the charger is plugged or unplugged, or the Mac comes online, and repeat actions on a daily schedule (like sleep every weekday at 1 AM).
+- **Private by design.** Your bot token is stored in a file only your user account can read, and only chats you approve can send commands. Powerful commands are off by default, and turning one on asks for your password or Touch ID. There are no servers, analytics or accounts.
 - **Launch at login**, and keep-awake can resume after a restart.
 - **Built-in updates.** KeepMeUp checks GitHub for new releases. It can download an update, install it in place and relaunch with one click.
 - **Glass design** on macOS 26 and later, with a material fallback on older versions.
@@ -78,6 +79,9 @@ Only approved chats can control the Mac. Each paired chat shows up in Settings w
 - **Groups:** add the bot to the group and send `/pair` there. Only people who have already paired with the bot privately can send commands in the group.
 - **Pairing closes** after your first chat is approved, so strangers who find your bot can't ask for access. To add another chat, click **Pair another chat**, which opens pairing for 5 minutes.
 
+> [!IMPORTANT]
+> Remote control is limited to the Telegram chats you approve on the Mac itself. Most commands that can see your screen, read files, use the camera or run code are **off by default** — you, the Mac's owner, turn each one on knowingly in **Settings → Commands**, and the app asks for your password or Touch ID first. You enable these at your own responsibility.
+
 ### Commands
 
 You can turn any command on or off in **Settings → Commands**. Commands that are off are hidden from the bot menu and refused. Commands marked 🛡 can see your screen, read files or run code. They start turned off, and turning one on asks for your password or Touch ID.
@@ -96,11 +100,24 @@ You can turn any command on or off in **Settings → Commands**. Commands that a
 | `/restart` · `/shutdown` | Restarts or shuts down (asks you to confirm first) |
 | `/desktop` | Hides every app so the desktop shows |
 | `/show` | Brings the hidden apps back |
-| `/screenshot` | Sends a screenshot of every display |
+| `/screenshot` 🛡 | Sends a screenshot of every display |
+| `/webcam` 🛡 | Takes a photo with the camera (the green camera light turns on) |
 | `/info` | Shows battery, uptime, load, memory and disk |
 | `/apps` | Lists running apps |
 | `/open <app>` | Launches an app (`/open Safari`) |
 | `/quit <app> [--force]` | Quits an app, or force quits it |
+| `/caffeinate <app>` | Keeps the Mac awake only while that app is running |
+| `/volume [0-100]` | Shows or sets the output volume |
+| `/mute` | Mutes or unmutes the output |
+| `/play` · `/next` · `/previous` | Media controls for whatever is playing |
+| `/say <text>` | Speaks text out loud on the Mac |
+| `/notify <text>` | Shows a notification on the Mac |
+| `/clip [text]` 🛡 | Reads the clipboard, or sets it |
+| `/wifi` | Wi-Fi network and signal |
+| `/ip` | Local and public IP addresses |
+| `/schedule <time> <action> [weekdays]` | Repeats an action daily (`/schedule 01:00 sleep weekdays`) |
+| `/schedules` · `/unschedule <n>` | Lists or removes scheduled actions |
+| `/upload` 🛡 | Send the bot a file and it's saved to Downloads |
 | `/terminal` | Opens Terminal |
 | `/term <command>` 🛡 | Runs a command in a Terminal window and sends a screenshot |
 | `/run <command>` 🛡 | Runs a shell command and replies with the output (60-second limit; long output arrives as a file) |
@@ -121,7 +138,9 @@ Durations can be written as `30` (minutes), `45m`, `2h`, `1h30m`, `90s` or `1:30
 | --- | --- | --- |
 | Automation → System Events | Restart and shut down | Asked the first time you use them |
 | Automation → Terminal | `/term` | Asked the first time you use it |
-| Screen Recording | `/screenshot` | System Settings → Privacy & Security → Screen Recording |
+| Screen Recording | `/screenshot`, `/term` | System Settings → Privacy & Security → Screen Recording |
+| Camera | `/webcam` | Asked the first time, or System Settings → Privacy & Security → Camera |
+| Files & Folders | `/find`, `/get`, file lists | Asked per folder, or System Settings → Privacy & Security |
 
 Keeping the Mac awake, display off, screensaver, lock and sleep don't need any permission.
 
@@ -153,6 +172,19 @@ gh release create vX.Y.Z dist/KeepMeUp.zip dist/KeepMeUp.zip.sig
 If a code signing certificate named **KeepMeUp Release** is in your keychain, the build script uses it. A self-signed one works. Keeping the same certificate across releases means macOS remembers permissions like Screen Recording after updates, because the ad-hoc signature changes with every build and macOS treats each build as a new app.
 
 The private key stays in `~/.config/keepmeup/ed25519.key`. Back it up, because if it's lost, existing installs can't verify new releases.
+
+## Security and disclaimer
+
+KeepMeUp is a remote-control tool for **your own Mac**. It's open source, so you can read exactly what every command does before you trust it.
+
+- Only the Telegram chats you approve on the Mac can send commands. Pairing is confirmed in a dialog on the Mac, and closes after the first chat so strangers can't request access.
+- Commands that can see your screen, use the camera, read files or run code are **off by default**. You turn each one on knowingly, and the app asks for your password or Touch ID first.
+- The bot token is stored in a file only your macOS account can read. There are no KeepMeUp servers, accounts or analytics — the app talks only to Telegram's API and, for `/ip`, a public IP-lookup service.
+- macOS still enforces its own protections: the green camera light turns on for `/webcam`, and Screen Recording, Camera, Automation and Files permissions must be granted by you.
+
+The more powerful commands exist for people who want them. Turning them on is your decision and your responsibility: anyone with access to an approved chat (or to your unlocked Telegram) can use whatever you've enabled. Enable only what you need, keep your Telegram account secure, and remove chats you no longer use.
+
+KeepMeUp is provided "as is", without warranty of any kind, under the MIT License. You use it at your own risk; the author is not liable for any loss or damage from using it. See [LICENSE](LICENSE).
 
 ## Contributing
 
