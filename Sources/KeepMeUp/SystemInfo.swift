@@ -36,6 +36,28 @@ enum SystemInfo {
         return "\(String(cString: buffer)) (\(arch))"
     }
 
+    struct BatterySnapshot {
+        let percent: Int?
+        let plugged: Bool?
+    }
+
+    static func batterySnapshot() -> BatterySnapshot {
+        guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let list = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else {
+            return BatterySnapshot(percent: nil, plugged: nil)
+        }
+        for source in list {
+            guard let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+                  description[kIOPSTypeKey] as? String == kIOPSInternalBatteryType else { continue }
+            let capacity = description[kIOPSCurrentCapacityKey] as? Int ?? 0
+            let max = description[kIOPSMaxCapacityKey] as? Int ?? 100
+            let percent = max > 0 ? capacity * 100 / max : capacity
+            let plugged = description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue
+            return BatterySnapshot(percent: percent, plugged: plugged)
+        }
+        return BatterySnapshot(percent: nil, plugged: true)
+    }
+
     static func battery() -> String {
         guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let list = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else {
