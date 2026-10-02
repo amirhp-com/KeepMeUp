@@ -358,18 +358,23 @@ final class TelegramBot: ObservableObject {
             let result = await Task.detached { RemoteTools.shell(argument) }.value
             await sendOutput(result, command: argument, to: chatID)
         case .find:
-            guard !argument.isEmpty else { return await reply("Usage: /find <name>\nExample: /find invoice") }
-            let urls = await Task.detached { RemoteTools.find(argument) }.value
-            await MainActor.run { self.foundFiles[chatID] = urls }
-            guard !urls.isEmpty else { return await reply("🔍 Nothing in your home folder matches “\(argument)”.") }
-            let home = FileManager.default.homeDirectoryForCurrentUser.path
-            let lines = urls.enumerated().map { index, url in
-                "\(index + 1). " + url.path.replacingOccurrences(of: home, with: "~") + "\n    /get_\(index + 1) · /openfile_\(index + 1)"
+            guard !argument.isEmpty else { return await reply("Usage: /find <name>\nExample: /find invoice\nSearch one folder with /desk, /docs or /dl.") }
+            await search(argument, in: .home, chatID: chatID)
+        case .desk, .docs, .dl:
+            let place: RemoteTools.Place = cmd == .desk ? .desktop : (cmd == .docs ? .documents : .downloads)
+            if argument.isEmpty {
+                let items = await Task.detached { RemoteTools.latest(in: place) }.value
+                await sendFileList(items.map { ($0.0, Optional($0.1)) }, header: "🗂 Newest in \(place.title)", empty: "\(place.title) is empty, or KeepMeUp isn't allowed to read it yet.", chatID: chatID)
+            } else {
+                await search(argument, in: place, chatID: chatID)
             }
-            await reply("🔍 Found \(urls.count)\n\n" + lines.joined(separator: "\n") + "\n\nTap /get_N to receive a file, or /openfile_N to open it on the Mac.")
+        case .recent:
+            let days = max(1, min(Int(args.first ?? "") ?? 7, 90))
+            let items = await Task.detached { RemoteTools.recentFiles(days: days) }.value
+            await sendFileList(items.map { ($0.0, Optional($0.1)) }, header: "🕘 Opened in the last \(days) day\(days == 1 ? "" : "s")", empty: "No recently opened files found in the last \(days) days.", chatID: chatID)
         case .get:
             guard let url = await resolveFile(argument, chatID: chatID) else {
-                return await reply("Usage: /get <path or number from /find>\nExample: /get ~/Desktop/report.pdf")
+                return await reply("Usage: /get <path or number from a file list>\nExample: /get ~/Desktop/report.pdf")
             }
             await sendFile(url, to: chatID)
         case .openfile:
@@ -469,6 +474,32 @@ final class TelegramBot: ObservableObject {
         for chunk in chunks {
             try? await send(chunk, to: chatID)
         }
+    }
+
+    private func search(_ query: String, in place: RemoteTools.Place, chatID: Int64) async {
+        _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "typing"])
+        let urls = await Task.detached { RemoteTools.find(query, in: place) }.value
+        await sendFileList(urls.map { ($0, nil) }, header: "🔍 “\(query)” in \(place.title)", empty: "🔍 Nothing in \(place.title) matches “\(query)”.", chatID: chatID)
+    }
+
+    private func sendFileList(_ items: [(URL, Date?)], header: String, empty: String, chatID: Int64) async {
+        await MainActor.run { self.foundFiles[chatID] = items.map(\.0) }
+        guard !items.isEmpty else {
+            try? await send(empty, to: chatID)
+            return
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let relative = RelativeDateTimeFormatter()
+        relative.unitsStyle = .short
+        let lines = items.enumerated().map { index, item -> String in
+            var isFolder: ObjCBool = false
+            FileManager.default.fileExists(atPath: item.0.path, isDirectory: &isFolder)
+            let icon = isFolder.boolValue ? "📁" : "📄"
+            let when = item.1.map { " · " + relative.localizedString(for: $0, relativeTo: Date()) } ?? ""
+            let path = item.0.deletingLastPathComponent().path.replacingOccurrences(of: home, with: "~")
+            return "\(index + 1). \(icon) \(item.0.lastPathComponent)\(when)\n    \(path)\n    /get_\(index + 1) · /openfile_\(index + 1)"
+        }
+        await sendLong(header: header, lines: lines, footer: "Tap /get_N to receive a file here, or /openfile_N to open it on the Mac.", to: chatID)
     }
 
     private func resolveFile(_ argument: String, chatID: Int64) async -> URL? {

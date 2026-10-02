@@ -7,7 +7,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
     case screenshot, info
     case apps, open, quit
     case terminal, term, run
-    case find, get, openfile
+    case find, desk, docs, dl, recent, get, openfile
     case help
 
     var id: String { rawValue }
@@ -44,7 +44,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .screenshot, .info: return .info
         case .apps, .open, .quit: return .apps
         case .terminal, .term, .run: return .shell
-        case .find, .get, .openfile: return .files
+        case .find, .desk, .docs, .dl, .recent, .get, .openfile: return .files
         case .help: return nil
         }
     }
@@ -59,6 +59,10 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .term: return "/term <command>"
         case .run: return "/run <command>"
         case .find: return "/find <name>"
+        case .desk: return "/desk [name]"
+        case .docs: return "/docs [name]"
+        case .dl: return "/dl [name]"
+        case .recent: return "/recent [days]"
         case .get: return "/get <path or number>"
         case .openfile: return "/openfile <path or number>"
         default: return "/\(rawValue)"
@@ -88,7 +92,11 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .terminal: return "Open Terminal"
         case .term: return "Run in Terminal and send a screenshot"
         case .run: return "Run a shell command and get the output"
-        case .find: return "Find files by name"
+        case .find: return "Find files anywhere in your home folder"
+        case .desk: return "Search Desktop, or list its newest items"
+        case .docs: return "Search Documents, or list its newest items"
+        case .dl: return "Search Downloads, or list its newest items"
+        case .recent: return "Files you opened recently (Finder Recents)"
         case .get: return "Send a file to this chat"
         case .openfile: return "Open a file on the Mac"
         case .help: return "Show all commands"
@@ -97,14 +105,14 @@ enum BotCommand: String, CaseIterable, Identifiable {
 
     var enabledByDefault: Bool {
         switch self {
-        case .run, .term, .find, .get, .openfile: return false
+        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile: return false
         default: return true
         }
     }
 
     var isSensitive: Bool {
         switch self {
-        case .run, .term, .find, .get, .openfile, .screenshot: return true
+        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .screenshot: return true
         default: return false
         }
     }
