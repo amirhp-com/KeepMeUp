@@ -29,7 +29,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>KeepMeUp asks System Events to restart or shut down your Mac when you schedule it.</string>
+	<string>KeepMeUp uses System Events to restart or shut down your Mac, and Terminal to run commands you send from Telegram.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 AmirhpCom · amirhp.com</string>
 	<key>NSHighResolutionCapable</key>
