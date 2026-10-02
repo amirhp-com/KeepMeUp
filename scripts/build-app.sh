@@ -8,8 +8,14 @@ APP="$DIST/$APP_NAME.app"
 
 cd "$ROOT"
 
-swift build -c release --arch arm64 --arch x86_64
-BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/$APP_NAME"
+if [ "${UNIVERSAL:-0}" = "1" ]; then
+    ARCHS=(--arch arm64 --arch x86_64)
+else
+    ARCHS=(--arch arm64)
+fi
+
+swift build -c release "${ARCHS[@]}"
+BIN="$(swift build -c release "${ARCHS[@]}" --show-bin-path)/$APP_NAME"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

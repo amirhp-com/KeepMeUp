@@ -39,7 +39,7 @@
 - **Launch at login**, and keep-awake can resume after a restart.
 - **Built-in updates.** KeepMeUp checks GitHub for new releases. It can download an update, install it in place and relaunch with one click.
 - **Glass design** on macOS 26 and later, with a material fallback on older versions.
-- **Universal binary.** Built natively for M-series chips, and runs on Intel Macs too.
+- **Native Apple Silicon.** Built for M-series chips. Run `UNIVERSAL=1 ./scripts/build-app.sh` for a universal build that also runs on Intel.
 
 ## Install
 
@@ -64,7 +64,7 @@ cd KeepMeUp
 open dist/KeepMeUp.app
 ```
 
-The script builds a universal `arm64` + `x86_64` binary, packages `dist/KeepMeUp.app` and zips it. To sign with your own Developer ID, set `SIGN_IDENTITY="Developer ID Application: …"`.
+The script builds a native `arm64` app (set `UNIVERSAL=1` to also include `x86_64` for Intel Macs), packages `dist/KeepMeUp.app` and zips it. To sign with your own Developer ID, set `SIGN_IDENTITY="Developer ID Application: …"`.
 
 ## Telegram remote control
 
