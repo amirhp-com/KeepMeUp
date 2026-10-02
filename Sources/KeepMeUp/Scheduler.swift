@@ -48,6 +48,7 @@ final class Scheduler: ObservableObject {
     private func fire() {
         guard let action else { return }
         cancel()
+        TelegramBot.shared.notify("⏰ Timer finished: \(action.title)")
         PowerActions.perform(action)
     }
 }

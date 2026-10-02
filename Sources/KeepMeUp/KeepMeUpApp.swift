@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if prefs.restoreOnLaunch && prefs.lastActive {
             AwakeManager.shared.enable()
         }
+        TelegramBot.shared.startIfEnabled()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
