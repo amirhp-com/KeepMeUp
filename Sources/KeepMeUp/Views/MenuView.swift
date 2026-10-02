@@ -46,11 +46,14 @@ struct MenuView: View {
                 .shadow(color: awake.isActive ? Color.cyan.opacity(0.35) : .clear, radius: 8)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(awake.isActive ? "Staying awake" : "Sleep as usual")
+                    Text(awake.isActive ? (awake.linkedApp.map { "Awake for \($0)" } ?? "Staying awake") : "Sleep as usual")
                         .font(.system(size: 15, weight: .semibold))
-                    Text(awake.isActive ? "Display, screensaver and sleep are held off" : "Click to keep your Mac awake")
+                        .lineLimit(1)
+                    Text(awake.isActive ? "Sleep & screensaver are blocked" : "Click to keep your Mac awake")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 Capsule()
