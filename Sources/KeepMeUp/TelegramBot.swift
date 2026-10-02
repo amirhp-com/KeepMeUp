@@ -80,7 +80,7 @@ final class TelegramBot: ObservableObject {
             await setState(.running(username))
             try? await registerCommands()
         } catch {
-            await setState(.failed(error.localizedDescription))
+            await setState(.failed(redact(error.localizedDescription)))
             return
         }
 
@@ -113,6 +113,10 @@ final class TelegramBot: ObservableObject {
         guard let message = update["message"] as? [String: Any],
               let chat = message["chat"] as? [String: Any],
               let chatID = (chat["id"] as? NSNumber)?.int64Value,
+              chat["type"] as? String == "private",
+              let from = message["from"] as? [String: Any],
+              (from["id"] as? NSNumber)?.int64Value == chatID,
+              from["is_bot"] as? Bool != true,
               let text = message["text"] as? String else { return }
 
         let parts = text.split(separator: " ").map(String.init)
@@ -145,8 +149,9 @@ final class TelegramBot: ObservableObject {
             try? await send("🔒 Pairing is closed. Open it from KeepMeUp Settings → Telegram on the Mac.", to: chatID)
             return
         }
-        let name = [chat["first_name"], chat["last_name"], chat["title"]].compactMap { $0 as? String }.joined(separator: " ")
-        let handle = (chat["username"] as? String).map { " (@\($0))" } ?? ""
+        let rawName = [chat["first_name"], chat["last_name"]].compactMap { $0 as? String }.joined(separator: " ")
+        let name = String(rawName.filter { !$0.isNewline }.prefix(64))
+        let handle = (chat["username"] as? String).map { "@\(String($0.prefix(32)))" } ?? "none"
         try? await send("⏳ Approve this chat on your Mac to finish pairing.", to: chatID)
 
         let approved = await MainActor.run { () -> Bool in
@@ -155,7 +160,7 @@ final class TelegramBot: ObservableObject {
             NSApp.activate(ignoringOtherApps: true)
             let alert = NSAlert()
             alert.messageText = "Allow Telegram control?"
-            alert.informativeText = "\(name.isEmpty ? "A chat" : name)\(handle) with ID \(chatID) wants to control this Mac through KeepMeUp."
+            alert.informativeText = "A Telegram user wants to control this Mac through KeepMeUp.\n\nChat ID: \(chatID)\nUsername: \(handle)\nName they set: \(name.isEmpty ? "none" : name)\n\nOnly allow this if you sent /pair yourself just now."
             alert.addButton(withTitle: "Allow")
             alert.addButton(withTitle: "Deny")
             alert.alertStyle = .warning
@@ -267,6 +272,9 @@ final class TelegramBot: ObservableObject {
               let message = callback["message"] as? [String: Any],
               let chat = message["chat"] as? [String: Any],
               let chatID = (chat["id"] as? NSNumber)?.int64Value,
+              chat["type"] as? String == "private",
+              let from = callback["from"] as? [String: Any],
+              (from["id"] as? NSNumber)?.int64Value == chatID,
               let messageID = message["message_id"] as? NSNumber,
               let data = callback["data"] as? String else { return }
 
@@ -372,6 +380,11 @@ final class TelegramBot: ObservableObject {
         request.httpBody = body
         let (data, _) = try await session.data(for: request)
         _ = try decode(data)
+    }
+
+    private func redact(_ text: String) -> String {
+        guard let token, !token.isEmpty else { return text }
+        return text.replacingOccurrences(of: token, with: "•••")
     }
 
     private func decode(_ data: Data) throws -> [String: Any] {
