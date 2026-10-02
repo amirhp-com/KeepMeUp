@@ -1,4 +1,5 @@
 import AppKit
+import CoreServices
 import Foundation
 
 enum RemoteTools {
@@ -166,13 +167,60 @@ enum RemoteTools {
         return URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath)
     }
 
-    static func find(_ name: String, limit: Int = 20) -> [URL] {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let result = shell("/usr/bin/mdfind -onlyin \(quoted(home)) -name \(quoted(name)) | head -n \(limit)", timeout: 30)
+    enum Place: String {
+        case home, desktop, documents, downloads
+
+        var title: String {
+            switch self {
+            case .home: return "your home folder"
+            case .desktop: return "Desktop"
+            case .documents: return "Documents"
+            case .downloads: return "Downloads"
+            }
+        }
+
+        var url: URL {
+            let fm = FileManager.default
+            switch self {
+            case .home: return fm.homeDirectoryForCurrentUser
+            case .desktop: return fm.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+            case .documents: return fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            case .downloads: return fm.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+            }
+        }
+    }
+
+    static func find(_ name: String, in place: Place = .home, limit: Int = 20) -> [URL] {
+        let result = shell("/usr/bin/mdfind -onlyin \(quoted(place.url.path)) -name \(quoted(name)) | head -n \(limit)", timeout: 30)
         return result.output
             .split(separator: "\n")
             .map { URL(fileURLWithPath: String($0)) }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    static func latest(in place: Place, limit: Int = 20) -> [(URL, Date)] {
+        let keys: [URLResourceKey] = [.contentModificationDateKey, .addedToDirectoryDateKey]
+        guard let items = try? FileManager.default.contentsOfDirectory(at: place.url, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else { return [] }
+        let dated = items.map { url -> (URL, Date) in
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            return (url, values?.addedToDirectoryDate ?? values?.contentModificationDate ?? .distantPast)
+        }
+        return Array(dated.sorted { $0.1 > $1.1 }.prefix(limit))
+    }
+
+    static func recentFiles(days: Int, limit: Int = 25) -> [(URL, Date)] {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let query = "kMDItemLastUsedDate >= $time.today(-\(days)) && kMDItemContentType != 'com.apple.application-bundle' && kMDItemContentType != 'public.folder'"
+        let result = shell("/usr/bin/mdfind -onlyin \(quoted(home)) \(quoted(query))", timeout: 30)
+        var items: [(URL, Date)] = []
+        for line in result.output.split(separator: "\n") {
+            let path = String(line)
+            guard !path.contains("/Library/"), !path.contains("/."),
+                  let item = MDItemCreate(kCFAllocatorDefault, path as CFString),
+                  let date = MDItemCopyAttribute(item, kMDItemLastUsedDate) as? Date else { continue }
+            items.append((URL(fileURLWithPath: path), date))
+        }
+        return Array(items.sorted { $0.1 > $1.1 }.prefix(limit))
     }
 
     static func quoted(_ text: String) -> String {
