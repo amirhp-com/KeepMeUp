@@ -341,6 +341,62 @@ final class TelegramBot: ObservableObject {
             await openApp(argument, chatID: chatID)
         case .quit:
             await quitApp(argument, chatID: chatID)
+        case .brightness:
+            if let value = args.first.flatMap(Int.init) {
+                let ok = await MainActor.run { SystemControls.setBrightness(value) }
+                await reply(ok ? "🔆 Brightness set to \(max(0, min(100, value)))%." : "⚠️ This display's brightness can't be changed from KeepMeUp.")
+            } else if let level = await MainActor.run(body: { SystemControls.brightness() }) {
+                await reply("🔆 Brightness is \(level)%. Send /brightness 0-100 to change it.")
+            } else {
+                await reply("⚠️ Couldn't read the brightness of this display.")
+            }
+        case .volume:
+            if let value = args.first.flatMap(Int.init) {
+                await Task.detached { SystemControls.setVolume(value) }.value
+                await reply("🔊 Volume set to \(max(0, min(100, value)))%.")
+            } else {
+                let (level, muted) = await Task.detached { (SystemControls.outputVolume(), SystemControls.isMuted()) }.value
+                await reply("🔊 Volume is \(level)%\(muted ? " (muted)" : ""). Send /volume 0-100 to change it.")
+            }
+        case .mute:
+            let muted = await Task.detached { () -> Bool in
+                let next = !SystemControls.isMuted()
+                SystemControls.setMuted(next)
+                return next
+            }.value
+            await reply(muted ? "🔇 Muted." : "🔊 Unmuted.")
+        case .play, .next, .previous:
+            let key: SystemControls.MediaKey = cmd == .play ? .playPause : (cmd == .next ? .next : .previous)
+            await MainActor.run { SystemControls.pressMediaKey(key) }
+            await reply(cmd == .play ? "⏯ Play/pause." : (cmd == .next ? "⏭ Next track." : "⏮ Previous track."))
+        case .say:
+            guard !argument.isEmpty else { return await reply("Usage: /say <text>\nExample: /say Dinner is ready") }
+            SystemControls.speak(String(argument.prefix(500)))
+            await reply("🗣 Speaking on the Mac.")
+        case .notify:
+            guard !argument.isEmpty else { return await reply("Usage: /notify <text>\nExample: /notify Call me back") }
+            let text = String(argument.prefix(300))
+            await Task.detached { SystemControls.notify(text) }.value
+            await reply("🔔 Notification shown on the Mac.")
+        case .clip:
+            if argument.isEmpty {
+                let text = await MainActor.run { SystemControls.readClipboard() }
+                guard let text, !text.isEmpty else { return await reply("📋 The clipboard has no text.") }
+                let body = text.count > 3500 ? String(text.prefix(3500)) + "\n…" : text
+                _ = try? await call("sendMessage", ["chat_id": chatID, "text": "📋 Clipboard\n<pre>\(escape(body))</pre>", "parse_mode": "HTML"])
+            } else {
+                await MainActor.run { SystemControls.writeClipboard(argument) }
+                await reply("📋 Clipboard updated.")
+            }
+        case .wifi:
+            let line = await Task.detached { SystemControls.wifi() }.value
+            await reply(line)
+        case .ip:
+            let local = await Task.detached { SystemControls.localIPs() }.value
+            let publicIP = await SystemControls.publicIP()
+            var lines = ["🌐 Public: \(publicIP ?? "unavailable")"]
+            lines += local.map { "🏠 \($0)" }
+            await reply(lines.joined(separator: "\n"))
         case .terminal:
             await MainActor.run { RemoteTools.openTerminal() }
             await reply("🖥 Terminal is open.")

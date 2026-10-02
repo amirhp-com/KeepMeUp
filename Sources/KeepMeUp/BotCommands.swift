@@ -2,10 +2,13 @@ import Foundation
 
 enum BotCommand: String, CaseIterable, Identifiable {
     case status, on, off, timer, cancel
-    case displayoff, screensaver, lock, sleep, restart, shutdown
+    case displayoff, screensaver, lock, sleep, restart, shutdown, brightness
     case desktop, show
     case screenshot, info
     case apps, open, quit
+    case volume, mute, play, next, previous
+    case say, notify, clip
+    case wifi, ip
     case terminal, term, run
     case find, desk, docs, dl, recent, get, openfile
     case help
@@ -18,6 +21,9 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case windows = "Desktop"
         case info = "Screen and info"
         case apps = "Apps"
+        case sound = "Sound and media"
+        case system = "System"
+        case network = "Network"
         case shell = "Terminal and shell"
         case files = "Files"
 
@@ -30,6 +36,9 @@ enum BotCommand: String, CaseIterable, Identifiable {
             case .windows: return "macwindow.on.rectangle"
             case .info: return "camera.viewfinder"
             case .apps: return "square.grid.2x2"
+            case .sound: return "speaker.wave.2"
+            case .system: return "bubble.left.and.text.bubble.right"
+            case .network: return "wifi"
             case .shell: return "terminal"
             case .files: return "folder"
             }
@@ -39,10 +48,13 @@ enum BotCommand: String, CaseIterable, Identifiable {
     var group: Group? {
         switch self {
         case .status, .on, .off, .timer, .cancel: return .awake
-        case .displayoff, .screensaver, .lock, .sleep, .restart, .shutdown: return .power
+        case .displayoff, .screensaver, .lock, .sleep, .restart, .shutdown, .brightness: return .power
         case .desktop, .show: return .windows
         case .screenshot, .info: return .info
         case .apps, .open, .quit: return .apps
+        case .volume, .mute, .play, .next, .previous: return .sound
+        case .say, .notify, .clip: return .system
+        case .wifi, .ip: return .network
         case .terminal, .term, .run: return .shell
         case .find, .desk, .docs, .dl, .recent, .get, .openfile: return .files
         case .help: return nil
@@ -54,8 +66,13 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .on: return "/on [time]"
         case .off: return "/off [time]"
         case .timer: return "/timer <time> <action>"
+        case .brightness: return "/brightness [0-100]"
         case .open: return "/open [name or number]"
         case .quit: return "/quit [name or number]"
+        case .volume: return "/volume [0-100]"
+        case .say: return "/say <text>"
+        case .notify: return "/notify <text>"
+        case .clip: return "/clip [text]"
         case .term: return "/term <command>"
         case .run: return "/run <command>"
         case .find: return "/find <name>"
@@ -82,6 +99,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .sleep: return "Sleep now"
         case .restart: return "Restart (asks first)"
         case .shutdown: return "Shut down (asks first)"
+        case .brightness: return "Show or set display brightness"
         case .desktop: return "Hide all apps and show the desktop"
         case .show: return "Bring hidden apps back"
         case .screenshot: return "Capture the screen"
@@ -89,6 +107,16 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .apps: return "List running apps with quick quit links"
         case .open: return "List installed apps or launch one"
         case .quit: return "Quit an app"
+        case .volume: return "Show or set the output volume"
+        case .mute: return "Mute or unmute the output"
+        case .play: return "Play or pause the current media"
+        case .next: return "Skip to the next track"
+        case .previous: return "Go to the previous track"
+        case .say: return "Speak text out loud on the Mac"
+        case .notify: return "Show a notification on the Mac"
+        case .clip: return "Read the clipboard, or set it"
+        case .wifi: return "Wi-Fi network and signal"
+        case .ip: return "Local and public IP addresses"
         case .terminal: return "Open Terminal"
         case .term: return "Run in Terminal and send a screenshot"
         case .run: return "Run a shell command and get the output"
@@ -103,16 +131,11 @@ enum BotCommand: String, CaseIterable, Identifiable {
         }
     }
 
-    var enabledByDefault: Bool {
-        switch self {
-        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile: return false
-        default: return true
-        }
-    }
+    var enabledByDefault: Bool { !isSensitive }
 
     var isSensitive: Bool {
         switch self {
-        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .screenshot: return true
+        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .screenshot, .clip: return true
         default: return false
         }
     }
