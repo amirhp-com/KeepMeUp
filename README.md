@@ -30,8 +30,10 @@
   - sleep, restart or shut down
 - **Quick actions.** Display off, screensaver, lock and sleep, one click each from the menu.
 - **Telegram remote control.** From your phone you can turn it on or off, set timers, lock, sleep, shut down, take screenshots, show the desktop, open and quit apps, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
-- **Private by design.** Your bot token stays in the macOS Keychain, and only chats you approve can send commands. There are no servers, analytics or accounts.
+- **Private by design.** Your bot token is stored in a file only your user account can read, and only chats you approve can send commands. Turning on a sensitive command asks for your password or Touch ID. There are no servers, analytics or accounts.
 - **Launch at login**, and keep-awake can resume after a restart.
+- **Built-in updates.** KeepMeUp checks GitHub for new releases. It can download an update, install it in place and relaunch with one click.
+- **Glass design** on macOS 26 and later, with a material fallback on older versions.
 - **Universal binary.** Built natively for M-series chips, and runs on Intel Macs too.
 
 ## Install
@@ -74,7 +76,7 @@ Only approved chats can control the Mac. Each paired chat shows up in Settings w
 
 ### Commands
 
-You can turn any command on or off in **Settings → Commands**. Commands that are off are hidden from the bot menu and refused. Commands marked 🛡 can read files or run code, so they start turned off.
+You can turn any command on or off in **Settings → Commands**. Commands that are off are hidden from the bot menu and refused. Commands marked 🛡 can see your screen, read files or run code. They start turned off, and turning one on asks for your password or Touch ID.
 
 | Command | What it does |
 | --- | --- |
@@ -125,6 +127,10 @@ Run `pmset -g assertions` in Terminal. While KeepMeUp is active, you'll see its 
 
 **What happens if I quit the app?**
 The power assertions are released right away, and your normal sleep settings apply again.
+
+## Updating
+
+KeepMeUp checks for new versions on launch and every few hours. You can turn this off in **Settings → About**. When an update is out, the menu shows an **Update** button: it downloads the release, replaces the app and relaunches it. Paired Telegram chats get a message about it too.
 
 ## Contributing
 
