@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AwakeManager.shared.enable()
         }
         TelegramBot.shared.startIfEnabled()
+        Updater.shared.startAutomaticChecks()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

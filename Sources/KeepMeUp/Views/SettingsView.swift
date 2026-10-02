@@ -387,9 +387,7 @@ struct CommandsSettingsView: View {
 }
 
 struct AboutView: View {
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
-    }
+    @ObservedObject private var updater = Updater.shared
 
     var body: some View {
         VStack(spacing: 10) {
@@ -397,25 +395,70 @@ struct AboutView: View {
                 .resizable()
                 .frame(width: 96, height: 96)
             Text("KeepMeUp").font(.title).bold()
-            Text("Version \(version)").foregroundStyle(.secondary)
+            Text("Version \(updater.currentVersion)").foregroundStyle(.secondary)
             Text("Free and open source. Keep your Mac awake, on your terms.")
                 .multilineTextAlignment(.center)
             HStack(spacing: 16) {
-                Link("amirhp.com", destination: URL(string: "https://amirhp.com")!)
+                Link("AmirhpCom", destination: URL(string: "https://amirhp.com")!)
                 Link("GitHub", destination: URL(string: "https://github.com/amirhp-com/KeepMeUp")!)
             }
             .noFocusRing()
-            Text("© 2026 AmirhpCom. Released under the MIT License.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 8)
+
+            UpdatePanel()
+                .padding(.top, 6)
+
+            HStack(spacing: 4) {
+                Text("© 2026")
+                Link("AmirhpCom", destination: URL(string: "https://amirhp.com")!)
+                Text("· Released under the MIT License.")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .noFocusRing()
+            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
         .padding(24)
     }
 }
 
-private extension View {
+struct UpdatePanel: View {
+    @ObservedObject private var updater = Updater.shared
+
+    var body: some View {
+        VStack(spacing: 8) {
+            switch updater.phase {
+            case .available:
+                if let latest = updater.latest {
+                    Text("Version \(latest.version) is available").font(.headline)
+                    HStack {
+                        Button("Update & Relaunch") { updater.install() }
+                            .buttonStyle(.borderedProminent)
+                        Button("Release Notes") { NSWorkspace.shared.open(latest.page) }
+                    }
+                }
+            case .downloading:
+                ProgressView().controlSize(.small)
+                Text("Downloading the update…").font(.caption).foregroundStyle(.secondary)
+            case .checking:
+                ProgressView().controlSize(.small)
+            case .upToDate:
+                Label("You're up to date", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                Button("Check Again") { updater.check() }
+            case .failed(let message):
+                Text(message).font(.caption).foregroundStyle(.red).multilineTextAlignment(.center)
+                Button("Try Again") { updater.check() }
+            case .idle:
+                Button("Check for Updates") { updater.check() }
+            }
+            Toggle("Check for updates automatically", isOn: $updater.autoCheck)
+                .toggleStyle(.checkbox)
+                .font(.caption)
+        }
+    }
+}
+
+extension View {
     @ViewBuilder
     func noFocusRing() -> some View {
         if #available(macOS 14.0, *) {
