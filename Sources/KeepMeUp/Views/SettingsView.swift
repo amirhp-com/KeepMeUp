@@ -24,6 +24,7 @@ struct SettingsView: View {
     enum Tab: String, CaseIterable, Identifiable {
         case general = "General"
         case telegram = "Telegram"
+        case commands = "Commands"
         case about = "About"
         var id: String { rawValue }
     }
@@ -44,6 +45,7 @@ struct SettingsView: View {
                 switch tab {
                 case .general: GeneralSettingsView()
                 case .telegram: TelegramSettingsView()
+                case .commands: CommandsSettingsView()
                 case .about: AboutView()
                 }
             }
@@ -132,53 +134,104 @@ struct TelegramSettingsView: View {
                             enabled ? saveAndStart() : bot.stop()
                         }
                     Spacer()
-                    Button("Save & Restart") { saveAndStart() }
+                    Button("Save & Connect") { saveAndStart() }
                         .disabled(token.isEmpty)
                 }
                 statusLine
             }
 
-            Section("Allowed chats") {
-                if prefs.allowedChatIDs.isEmpty {
-                    Text("No chats yet. Send /pair to your bot and approve it here.")
+            if prefs.allowedChats.isEmpty {
+                Section("Get started") {
+                    onboarding
+                }
+            }
+
+            Section {
+                if prefs.allowedChats.isEmpty {
+                    Text("No chats yet.")
                         .foregroundStyle(.secondary)
                 }
-                ForEach(prefs.allowedChatIDs, id: \.self) { id in
-                    HStack {
-                        Text(String(id)).font(.system(.body, design: .monospaced))
-                        Spacer()
-                        Button(role: .destructive) {
-                            prefs.allowedChatIDs.removeAll { $0 == id }
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.borderless)
+                ForEach(prefs.allowedChats) { chat in
+                    ChatRow(chat: chat) {
+                        prefs.allowedChats.removeAll { $0.id == chat.id }
+                        bot.refreshCommands()
                     }
                 }
                 HStack {
                     TextField("", text: $newChatID, prompt: Text("Chat ID, e.g. 123456789"))
                         .textFieldStyle(.roundedBorder)
                         .labelsHidden()
-                    Button("Add") {
-                        if let id = Int64(newChatID.trimmingCharacters(in: .whitespaces)), !prefs.allowedChatIDs.contains(id) {
-                            prefs.allowedChatIDs.append(id)
-                        }
-                        newChatID = ""
-                    }
-                    .disabled(Int64(newChatID.trimmingCharacters(in: .whitespaces)) == nil)
+                        .onSubmit(addChat)
+                    Button("Add", action: addChat)
+                        .disabled(parsedChatID == nil)
                 }
-                if !prefs.allowedChatIDs.isEmpty {
-                    HStack {
-                        Button("Allow a new /pair for 5 minutes") { bot.openPairing() }
-                        if let until = bot.pairingOpenUntil, until > Date() {
-                            Text("Open").foregroundStyle(.green).font(.caption)
-                        }
-                    }
+            } header: {
+                Text("Allowed chats")
+            }
+
+            if !prefs.allowedChats.isEmpty {
+                Section {
+                    pairAnother
                 }
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+    }
+
+    private var parsedChatID: Int64? {
+        Int64(newChatID.trimmingCharacters(in: .whitespaces))
+    }
+
+    private func addChat() {
+        guard let id = parsedChatID else { return }
+        if !prefs.isAllowed(id) {
+            prefs.upsert(ChatInfo(id: id, type: id > 0 ? "private" : "unknown"))
+            bot.lookUp(id)
+            bot.refreshCommands()
+        }
+        newChatID = ""
+    }
+
+    @ViewBuilder
+    private var onboarding: some View {
+        let hasToken = !(Keychain.read(TelegramBot.tokenAccount) ?? "").isEmpty
+        let running = bot.isRunning
+        StepRow(number: 1, done: hasToken && running, title: "Connect your bot", detail: "Paste the token above, turn on Telegram control and click Save & Connect.")
+        StepRow(number: 2, done: false, active: running && !bot.awaitingApproval, title: "Start the bot in Telegram", detail: running ? "Open \(bot.botUsername.map { "@\($0)" } ?? "your bot") and tap Start." : "Available once the bot is connected.") {
+            if running, let username = bot.botUsername, let url = URL(string: "https://t.me/\(username)?start=pair") {
+                Link(destination: url) {
+                    Label("Open in Telegram", systemImage: "paperplane.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        StepRow(number: 3, done: false, active: bot.awaitingApproval, title: "Approve on this Mac", detail: bot.awaitingApproval ? "Click Allow in the KeepMeUp window that just appeared." : "KeepMeUp will ask you to allow the chat. Then the bot sends you the list of commands.")
+    }
+
+    @ViewBuilder
+    private var pairAnother: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                if let until = bot.pairingOpenUntil, until > Date() {
+                    Label("Pairing is open — send /start from the new chat", systemImage: "antenna.radiowaves.left.and.right")
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Button("Close") { bot.closePairing() }
+                } else {
+                    Button {
+                        bot.openPairing()
+                    } label: {
+                        Label("Pair another chat", systemImage: "plus.circle")
+                    }
+                }
+            }
+            Text("After your first chat is paired, KeepMeUp stops accepting new /start requests so strangers who find your bot can't ask for access. This opens pairing for 5 minutes. To add a group, add the bot to it and send /pair there.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     @ViewBuilder
@@ -198,6 +251,130 @@ struct TelegramSettingsView: View {
     private func saveAndStart() {
         Keychain.save(token.trimmingCharacters(in: .whitespacesAndNewlines), for: TelegramBot.tokenAccount)
         if prefs.botEnabled { bot.start() }
+    }
+}
+
+struct ChatRow: View {
+    let chat: ChatInfo
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: chat.symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(color))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(chat.title.isEmpty ? "Chat \(chat.id)" : chat.title)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+            .help("Remove this chat")
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var subtitle: String {
+        [chat.username.map { "@\($0)" }, chat.kind, String(chat.id)].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private var color: Color {
+        switch chat.type {
+        case "private": return .blue
+        case "group", "supergroup": return .green
+        case "channel": return .orange
+        default: return .gray
+        }
+    }
+}
+
+struct StepRow<Accessory: View>: View {
+    let number: Int
+    let done: Bool
+    var active: Bool = false
+    let title: String
+    let detail: String
+    @ViewBuilder var accessory: () -> Accessory
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle().fill(done ? Color.green : (active ? Color.accentColor : Color.secondary.opacity(0.25)))
+                if done {
+                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                } else {
+                    Text("\(number)").font(.system(size: 12, weight: .bold)).foregroundStyle(active ? .white : .primary)
+                }
+            }
+            .frame(width: 22, height: 22)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.body.weight(.medium))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                accessory()
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+extension StepRow where Accessory == EmptyView {
+    init(number: Int, done: Bool, active: Bool = false, title: String, detail: String) {
+        self.init(number: number, done: done, active: active, title: title, detail: detail) { EmptyView() }
+    }
+}
+
+struct CommandsSettingsView: View {
+    @ObservedObject private var prefs = Preferences.shared
+
+    var body: some View {
+        Form {
+            Section {
+                Text("Choose what your paired chats can do. Turned-off commands disappear from the bot menu and are refused. Commands marked with a shield can read files or run code on this Mac, so only turn them on if you trust every paired chat.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(BotCommand.Group.allCases) { group in
+                Section {
+                    ForEach(BotCommand.allCases.filter { $0.group == group }) { command in
+                        Toggle(isOn: Binding(
+                            get: { prefs.isEnabled(command) },
+                            set: {
+                                prefs.setEnabled(command, $0)
+                                TelegramBot.shared.refreshCommands()
+                            }
+                        )) {
+                            HStack(spacing: 6) {
+                                Text(command.usage).font(.system(.body, design: .monospaced))
+                                if command.isSensitive {
+                                    Image(systemName: "checkmark.shield")
+                                        .foregroundStyle(.orange)
+                                        .help("Sensitive")
+                                }
+                            }
+                            Text(command.summary)
+                        }
+                    }
+                } header: {
+                    Label(group.rawValue, systemImage: group.symbol)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 560)
     }
 }
 
