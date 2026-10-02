@@ -100,7 +100,11 @@ You can turn any command on or off in **Settings → Commands**. Commands that a
 | `/terminal` | Opens Terminal |
 | `/term <command>` 🛡 | Runs a command in a Terminal window and sends a screenshot |
 | `/run <command>` 🛡 | Runs a shell command and replies with the output (60-second limit; long output arrives as a file) |
-| `/find <name>` 🛡 | Searches your home folder with Spotlight and lists numbered results |
+| `/find <name>` 🛡 | Searches your whole home folder with Spotlight. Each result has tappable `/get_N` and `/openfile_N` links |
+| `/desk [name]` 🛡 | Searches Desktop, or lists its newest items when no name is given |
+| `/docs [name]` 🛡 | Searches Documents, or lists its newest items |
+| `/dl [name]` 🛡 | Searches Downloads, or lists its newest items |
+| `/recent [days]` 🛡 | Lists files you opened recently, like Finder's Recents (default 7 days) |
 | `/get <path or number>` 🛡 | Sends a file to the chat (folders are zipped; Telegram's limit is 50 MB) |
 | `/openfile <path or number>` 🛡 | Opens a file on the Mac |
 | `/help` | Lists the commands that are turned on |
