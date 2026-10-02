@@ -20,6 +20,11 @@ enum SettingsWindow {
     }
 }
 
+final class SettingsRouter: ObservableObject {
+    static let shared = SettingsRouter()
+    @Published var tab: SettingsView.Tab = .general
+}
+
 struct SettingsView: View {
     enum Tab: String, CaseIterable, Identifiable {
         case general = "General"
@@ -29,11 +34,11 @@ struct SettingsView: View {
         var id: String { rawValue }
     }
 
-    @State private var tab: Tab = .general
+    @ObservedObject private var router = SettingsRouter.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
+            Picker("", selection: $router.tab) {
                 ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -42,7 +47,7 @@ struct SettingsView: View {
             .padding(.top, 16)
 
             Group {
-                switch tab {
+                switch router.tab {
                 case .general: GeneralSettingsView()
                 case .telegram: TelegramSettingsView()
                 case .commands: CommandsSettingsView()
@@ -152,6 +157,18 @@ struct TelegramSettingsView: View {
                         .disabled(token.isEmpty)
                 }
                 statusLine
+                if bot.isRunning {
+                    HStack(spacing: 10) {
+                        Image(systemName: "switch.2")
+                            .foregroundStyle(Color.accentColor)
+                        Text("Your bot is connected. Choose which commands your chats can use in the Commands tab.")
+                            .font(.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 4)
+                        Button("Open Commands") { SettingsRouter.shared.tab = .commands }
+                            .controlSize(.small)
+                    }
+                }
             }
 
             if prefs.allowedChats.isEmpty {
