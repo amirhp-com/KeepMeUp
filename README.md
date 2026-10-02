@@ -65,7 +65,7 @@ The script builds a universal `arm64` + `x86_64` binary, packages `dist/KeepMeUp
 2. In KeepMeUp, open **Settings… → Telegram**, paste the token and switch on **Enable Telegram control**.
 3. Send `/pair` to your new bot, then click **Allow** in the prompt that appears on your Mac.
 
-Only approved chat IDs can control the Mac, and every other chat is refused. To pair another device later, click **Allow a new /pair for 5 minutes**. You can also add or remove chat IDs by hand.
+Only approved private chats can control the Mac. Groups, channels and every other chat are ignored. To pair another device later, click **Allow a new /pair for 5 minutes**. You can also add or remove chat IDs by hand.
 
 | Command | What it does |
 | --- | --- |
