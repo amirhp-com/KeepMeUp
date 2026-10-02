@@ -32,6 +32,8 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>KeepMeUp uses System Events to restart or shut down your Mac, and Terminal to run commands you send from Telegram.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>KeepMeUp takes a camera photo only when you send the /webcam command from your paired Telegram chat.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
