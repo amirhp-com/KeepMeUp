@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;width:1280px;height:640px;overflow:hidden;font-family:Figtree,sans-serif;color:#E9E8FF;
+background:
+ radial-gradient(1.5px 1.5px at 8% 14%,rgba(255,255,255,.7),transparent 60%),
+ radial-gradient(1px 1px at 22% 78%,rgba(255,255,255,.5),transparent 60%),
+ radial-gradient(1.5px 1.5px at 40% 9%,rgba(255,255,255,.6),transparent 60%),
+ radial-gradient(1px 1px at 47% 58%,rgba(255,255,255,.45),transparent 60%),
+ radial-gradient(1px 1px at 93% 88%,rgba(255,255,255,.5),transparent 60%),
+ radial-gradient(800px 500px at 88% 10%,rgba(91,80,240,.45),transparent 70%),
+ radial-gradient(600px 400px at 100% 100%,rgba(46,216,240,.25),transparent 70%),
+ #0D0B22}
+.left{position:absolute;left:84px;top:96px;width:620px}
+.brand{display:flex;align-items:center;gap:16px;font:800 34px 'Bricolage Grotesque';letter-spacing:-.02em}
+.brand img{width:64px;height:64px}
+h1{font:800 78px/.98 'Bricolage Grotesque';letter-spacing:-.04em;margin:46px 0 22px}
+h1 span{color:#9C98C9;font-weight:500}
+p{font-size:25px;color:#C9C6EE;margin:0;line-height:1.4}
+.tags{position:absolute;left:84px;bottom:64px;display:flex;gap:12px;font:500 17px 'JetBrains Mono';color:#F2C38B}
+.tags b{font-weight:500;padding:8px 14px;border:1px solid rgba(242,195,139,.35);border-radius:999px;background:rgba(242,195,139,.06)}
+.menu{position:absolute;right:84px;top:118px;width:400px;border-radius:26px;padding:16px;display:grid;gap:12px;
+background:rgba(40,34,96,.55);border:1px solid rgba(255,255,255,.16);box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+.card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px}
+.head{display:flex;align-items:center;gap:16px}
+.orb{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#5B50F0,#2ED8F0);box-shadow:0 0 30px rgba(46,216,240,.5);display:grid;place-items:center}
+.orb svg{width:28px;height:28px;color:#fff}
+.head b{display:block;font-size:20px}.head small{color:#9C98C9;font-size:14px}
+.sw{margin-left:auto;width:52px;height:30px;border-radius:999px;background:#3B82F6;position:relative}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff}
+.count{display:flex;align-items:center;gap:14px}
+.count small{display:block;color:#9C98C9;font-size:14px}
+.count .big{font:600 40px Figtree;font-variant-numeric:tabular-nums}
+.bub{display:flex;flex-direction:column;gap:8px;font-size:15px}
+.me{align-self:flex-end;background:#2B5278;border-radius:14px 14px 4px 14px;padding:7px 12px;font:500 14px 'JetBrains Mono'}
+.bot{align-self:flex-start;background:#182533;border-radius:14px 14px 14px 4px;padding:8px 12px;line-height:1.35}
+</style></head><body>
+<div class="left">
+  <div class="brand"><img src="logo.png">KeepMeUp</div>
+  <h1>Your Mac stays up.<br><span>You get some sleep.</span></h1>
+  <p>Keep your Mac awake, set sleep and shutdown timers, and control it from Telegram.</p>
+</div>
+<div class="tags"><b>Free &amp; open source</b><b>macOS 13+</b><b>Apple Silicon &amp; Intel</b></div>
+<div class="menu">
+  <div class="card head"><span class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M3 21h15"/><path d="M8 3c-.7 1 .7 2 0 3M12 3c-.7 1 .7 2 0 3"/></svg></span><div><b>Staying awake</b><small>Display and sleep are held off</small></div><span class="sw"></span></div>
+  <div class="card count"><div><small>Shut down in</small><span class="big">1:29:58</span></div></div>
+  <div class="card bub">
+    <span class="me">/status</span>
+    <span class="bot">☕️ Keep-awake is ON<br>🔋 84% · on power adapter</span>
+  </div>
+</div>
+</body></html>
