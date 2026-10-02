@@ -20,6 +20,8 @@ final class TelegramBot: ObservableObject {
     private var token: String?
     private var offset: Int64 = 0
     private var foundFiles: [Int64: [URL]] = [:]
+    private var runningLists: [Int64: [(name: String, pid: pid_t)]] = [:]
+    private var installedLists: [Int64: [RemoteTools.InstalledApp]] = [:]
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 70
@@ -169,8 +171,16 @@ final class TelegramBot: ObservableObject {
         let head = trimmed.split(separator: " ", maxSplits: 1).first.map(String.init) ?? trimmed
         let headParts = head.split(separator: "@", maxSplits: 1).map(String.init)
         if headParts.count == 2, let me = botUsername, headParts[1].lowercased() != me.lowercased() { return }
-        let command = headParts[0].lowercased()
-        let argument = String(trimmed.dropFirst(head.count)).trimmingCharacters(in: .whitespaces)
+        var command = headParts[0].lowercased()
+        var argument = String(trimmed.dropFirst(head.count)).trimmingCharacters(in: .whitespaces)
+        let aliases = ["open_app": "open", "launch": "open", "close_app": "quit", "close": "quit", "quit_app": "quit"]
+        var base = String(command.dropFirst())
+        if let underscore = base.lastIndex(of: "_"), let number = Int(base[base.index(after: underscore)...]) {
+            base = String(base[..<underscore])
+            argument = argument.isEmpty ? String(number) : "\(number) \(argument)"
+        }
+        base = aliases[base] ?? base
+        command = "/" + base
 
         let allowed = await MainActor.run { isAuthorized(chat: chat, senderID: senderID) }
 
@@ -325,27 +335,11 @@ final class TelegramBot: ObservableObject {
         case .info:
             await reply(SystemInfo.summary())
         case .apps:
-            let apps = await MainActor.run { RemoteTools.runningApps().map { ($0.localizedName ?? "?", $0.isHidden, $0.isActive) } }
-            let lines = apps.enumerated().map { index, app in
-                "\(index + 1). \(app.0)\(app.2 ? " ●" : "")\(app.1 ? " (hidden)" : "")"
-            }
-            await reply("🧩 Running apps\n\n" + lines.joined(separator: "\n") + "\n\nUse /open <app> or /quit <app>.")
+            await sendRunningApps(to: chatID)
         case .open:
-            guard !argument.isEmpty else { return await reply("Usage: /open <app>\nExample: /open Safari") }
-            let ok = await MainActor.run { RemoteTools.launchApp(argument) }
-            await reply(ok ? "🚀 Opening \(argument)." : "⚠️ Couldn't find an app called “\(argument)”.")
+            await openApp(argument, chatID: chatID)
         case .quit:
-            var name = argument
-            let force = name.hasSuffix("--force") || name.hasSuffix("-f")
-            if force { name = name.replacingOccurrences(of: "--force", with: "").replacingOccurrences(of: " -f", with: "").trimmingCharacters(in: .whitespaces) }
-            guard !name.isEmpty else { return await reply("Usage: /quit <app> [--force]\nExample: /quit Safari") }
-            let target = name
-            let quit = await MainActor.run { RemoteTools.quitApp(target, force: force) }
-            if let quit {
-                await reply(force ? "💥 Force quit \(quit)." : "👋 Asked \(quit) to quit.")
-            } else {
-                await reply("⚠️ No running app matches “\(name)”. Send /apps to see the list.")
-            }
+            await quitApp(argument, chatID: chatID)
         case .terminal:
             await MainActor.run { RemoteTools.openTerminal() }
             await reply("🖥 Terminal is open.")
@@ -369,9 +363,9 @@ final class TelegramBot: ObservableObject {
             guard !urls.isEmpty else { return await reply("🔍 Nothing in your home folder matches “\(argument)”.") }
             let home = FileManager.default.homeDirectoryForCurrentUser.path
             let lines = urls.enumerated().map { index, url in
-                "\(index + 1). " + url.path.replacingOccurrences(of: home, with: "~")
+                "\(index + 1). " + url.path.replacingOccurrences(of: home, with: "~") + "\n    /get_\(index + 1) · /openfile_\(index + 1)"
             }
-            await reply("🔍 Found \(urls.count)\n\n" + lines.joined(separator: "\n") + "\n\nSend /get <number> to receive one, or /openfile <number> to open it on the Mac.")
+            await reply("🔍 Found \(urls.count)\n\n" + lines.joined(separator: "\n") + "\n\nTap /get_N to receive a file, or /openfile_N to open it on the Mac.")
         case .get:
             guard let url = await resolveFile(argument, chatID: chatID) else {
                 return await reply("Usage: /get <path or number from /find>\nExample: /get ~/Desktop/report.pdf")
@@ -383,6 +377,96 @@ final class TelegramBot: ObservableObject {
             }
             let ok = await MainActor.run { NSWorkspace.shared.open(url) }
             await reply(ok ? "📂 Opened \(url.lastPathComponent)." : "⚠️ Couldn't open \(url.lastPathComponent).")
+        }
+    }
+
+    private func sendRunningApps(to chatID: Int64) async {
+        let apps = await MainActor.run { RemoteTools.runningApps().map { (name: $0.localizedName ?? "?", pid: $0.processIdentifier, hidden: $0.isHidden, active: $0.isActive) } }
+        await MainActor.run { self.runningLists[chatID] = apps.map { (name: $0.name, pid: $0.pid) } }
+        let lines = apps.enumerated().map { index, app in
+            "\(index + 1). \(app.name)\(app.active ? " ●" : "")\(app.hidden ? " (hidden)" : "")  /quit_\(index + 1)"
+        }
+        await sendLong(header: "🧩 Running apps — tap /quit_N to quit one", lines: lines, footer: "Force quit: /quit 3 --force · Open another app: /open", to: chatID)
+    }
+
+    private func sendInstalledApps(_ apps: [(Int, RemoteTools.InstalledApp)], header: String, to chatID: Int64) async {
+        let lines = apps.map { "\($0.0). \($0.1.name)  /open_\($0.0)" }
+        await sendLong(header: header, lines: lines, footer: "Tap /open_N, or send /open <name>.", to: chatID)
+    }
+
+    private func openApp(_ argument: String, chatID: Int64) async {
+        let cached = argument.isEmpty ? nil : await MainActor.run { self.installedLists[chatID] }
+        let apps = cached ?? RemoteTools.installedApps()
+        await MainActor.run { self.installedLists[chatID] = apps }
+
+        if argument.isEmpty {
+            return await sendInstalledApps(Array(zip(1..., apps)), header: "📦 Installed apps — tap /open_N to launch one", to: chatID)
+        }
+        if let number = Int(argument) {
+            guard number >= 1, number <= apps.count else {
+                try? await send("⚠️ There's no app #\(number). Send /open to see the list.", to: chatID)
+                return
+            }
+            let app = apps[number - 1]
+            await MainActor.run { RemoteTools.open(app) }
+            try? await send("🚀 Opening \(app.name).", to: chatID)
+            return
+        }
+        let query = argument.lowercased()
+        let matches = zip(1..., apps).filter { $0.1.name.lowercased().contains(query) }
+        if let exact = matches.first(where: { $0.1.name.lowercased() == query }) ?? (matches.count == 1 ? matches.first : nil) {
+            await MainActor.run { RemoteTools.open(exact.1) }
+            try? await send("🚀 Opening \(exact.1.name).", to: chatID)
+        } else if matches.isEmpty {
+            let ok = await MainActor.run { RemoteTools.launchApp(argument) }
+            try? await send(ok ? "🚀 Opening \(argument)." : "⚠️ No app matches “\(argument)”. Send /open to see the list.", to: chatID)
+        } else {
+            await sendInstalledApps(Array(matches), header: "🔍 Apps matching “\(argument)”", to: chatID)
+        }
+    }
+
+    private func quitApp(_ argument: String, chatID: Int64) async {
+        var name = argument
+        let force = name.hasSuffix("--force") || name.hasSuffix(" -f")
+        if force {
+            name = name.replacingOccurrences(of: "--force", with: "").replacingOccurrences(of: " -f", with: "").trimmingCharacters(in: .whitespaces)
+        }
+        if name.isEmpty {
+            return await sendRunningApps(to: chatID)
+        }
+        let target = name
+        let quit: String?
+        if let number = Int(target) {
+            let list = await MainActor.run { self.runningLists[chatID] }
+            guard let list, number >= 1, number <= list.count else {
+                try? await send("⚠️ Send /apps first, then tap /quit_N.", to: chatID)
+                return
+            }
+            quit = await MainActor.run { RemoteTools.quit(pid: list[number - 1].pid, force: force) }
+        } else {
+            quit = await MainActor.run { RemoteTools.quitApp(target, force: force) }
+        }
+        if let quit {
+            try? await send(force ? "💥 Force quit \(quit)." : "👋 Asked \(quit) to quit.", to: chatID)
+        } else {
+            try? await send("⚠️ That app isn't running anymore. Send /apps for a fresh list.", to: chatID)
+        }
+    }
+
+    private func sendLong(header: String, lines: [String], footer: String, to chatID: Int64) async {
+        var chunks: [String] = []
+        var current = header + "\n"
+        for line in lines {
+            if current.count + line.count + 1 > 3800 {
+                chunks.append(current)
+                current = ""
+            }
+            current += "\n" + line
+        }
+        current += "\n\n" + footer
+        chunks.append(current)
+        for chunk in chunks {
+            try? await send(chunk, to: chatID)
         }
     }
 
