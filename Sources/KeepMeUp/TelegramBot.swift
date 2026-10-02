@@ -371,6 +371,16 @@ final class TelegramBot: ObservableObject {
             await reply("🪟 Hidden apps are back.")
         case .screenshot:
             await sendScreenshots(to: chatID)
+        case .webcam:
+            _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "upload_photo"])
+            let result = await Camera.shared.snapshot()
+            switch result {
+            case .success(let url):
+                try? await upload(file: url, method: "sendPhoto", field: "photo", mime: "image/jpeg", chatID: chatID)
+                try? FileManager.default.removeItem(at: url)
+            case .failure(let error):
+                await reply("⚠️ \(error.localizedDescription)")
+            }
         case .info:
             await reply(SystemInfo.summary())
         case .apps:

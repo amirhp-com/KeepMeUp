@@ -4,7 +4,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
     case status, on, off, timer, cancel, caffeinate
     case displayoff, screensaver, lock, sleep, restart, shutdown, brightness
     case desktop, show
-    case screenshot, info
+    case screenshot, webcam, info
     case apps, open, quit
     case volume, mute, play, next, previous
     case say, notify, clip
@@ -53,7 +53,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .status, .on, .off, .timer, .cancel, .caffeinate: return .awake
         case .displayoff, .screensaver, .lock, .sleep, .restart, .shutdown, .brightness: return .power
         case .desktop, .show: return .windows
-        case .screenshot, .info: return .info
+        case .screenshot, .webcam, .info: return .info
         case .apps, .open, .quit: return .apps
         case .volume, .mute, .play, .next, .previous: return .sound
         case .say, .notify, .clip: return .system
@@ -111,6 +111,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .desktop: return "Hide all apps and show the desktop"
         case .show: return "Bring hidden apps back"
         case .screenshot: return "Capture the screen"
+        case .webcam: return "Take a photo with the camera"
         case .info: return "Battery and system info"
         case .apps: return "List running apps with quick quit links"
         case .open: return "List installed apps or launch one"
@@ -147,7 +148,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
 
     var isSensitive: Bool {
         switch self {
-        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload, .screenshot, .clip: return true
+        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload, .screenshot, .webcam, .clip: return true
         default: return false
         }
     }
