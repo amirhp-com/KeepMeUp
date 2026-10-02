@@ -132,6 +132,18 @@ The power assertions are released right away, and your normal sleep settings app
 
 KeepMeUp checks for new versions on launch and every few hours. You can turn this off in **Settings → About**. When an update is out, the menu shows an **Update** button: it downloads the release, replaces the app and relaunches it. Paired Telegram chats get a message about it too.
 
+Every release zip comes with a `KeepMeUp.zip.sig` signature file. The app only installs updates whose signature matches the release key built into it.
+
+### Publishing a release
+
+```bash
+swift scripts/release-key.swift generate   # once; prints the public key for Info.plist (KMUPublicEDKey)
+./scripts/build-app.sh                     # builds and signs dist/KeepMeUp.zip
+gh release create vX.Y.Z dist/KeepMeUp.zip dist/KeepMeUp.zip.sig
+```
+
+The private key stays in `~/.config/keepmeup/ed25519.key`. Back it up, because if it's lost, existing installs can't verify new releases.
+
 ## Contributing
 
 Issues and pull requests are welcome. If you find KeepMeUp useful, please give it a ⭐️.
