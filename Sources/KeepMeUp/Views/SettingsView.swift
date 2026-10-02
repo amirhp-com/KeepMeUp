@@ -88,6 +88,19 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            Section {
+                Toggle("Low battery warning", isOn: $prefs.batteryAlerts)
+                Toggle("Power adapter connected or unplugged", isOn: $prefs.powerAlerts)
+                Toggle("“Mac is online” after launch", isOn: $prefs.onlineAlert)
+            } header: {
+                Text("Telegram alerts")
+            } footer: {
+                Text("When on, your paired chat gets a message for these events. They need Telegram control turned on.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
