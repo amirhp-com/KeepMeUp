@@ -342,7 +342,7 @@ struct CommandsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Choose what your paired chats can do. Turned-off commands disappear from the bot menu and are refused. Commands marked with a shield can read files or run code on this Mac, so only turn them on if you trust every paired chat.")
+                Text("Choose what your paired chats can do. Turned-off commands disappear from the bot menu and are refused. Commands marked with a shield can see your screen, read files or run code on this Mac, so turning one on asks for your password or Touch ID.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -352,9 +352,17 @@ struct CommandsSettingsView: View {
                     ForEach(BotCommand.allCases.filter { $0.group == group }) { command in
                         Toggle(isOn: Binding(
                             get: { prefs.isEnabled(command) },
-                            set: {
-                                prefs.setEnabled(command, $0)
-                                TelegramBot.shared.refreshCommands()
+                            set: { value in
+                                guard value, command.isSensitive else {
+                                    prefs.setEnabled(command, value)
+                                    TelegramBot.shared.refreshCommands()
+                                    return
+                                }
+                                Authenticator.confirm("turn on /\(command.rawValue) for your Telegram chats") { approved in
+                                    guard approved else { return }
+                                    prefs.setEnabled(command, true)
+                                    TelegramBot.shared.refreshCommands()
+                                }
                             }
                         )) {
                             HStack(spacing: 6) {
