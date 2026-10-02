@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KeepMeUp — keep your Mac awake, control it from Telegram</title>
+<meta name="description" content="A free, open-source menu bar app that keeps your Mac awake, runs timers, and lets you control your Mac from a Telegram bot.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KeepMeUp — your Mac stays up, you don't have to">
+<meta property="og:description" content="Free, open-source macOS menu bar app. Keep awake, timers, and Telegram remote control.">
+<meta property="og:image" content="https://amirhp-com.github.io/KeepMeUp/og.png">
+<meta property="og:url" content="https://amirhp-com.github.io/KeepMeUp/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://amirhp-com.github.io/KeepMeUp/og.png">
+<meta name="theme-color" content="#0D0B22">
+<link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0D0B22;
+  --deep:#16133A;
+  --panel:#1D1A47;
+  --line:rgba(233,232,255,.10);
+  --indigo:#5B50F0;
+  --cyan:#2ED8F0;
+  --mist:#E9E8FF;
+  --haze:#9C98C9;
+  --crema:#F2C38B;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:18px;
+  --glass:rgba(255,255,255,.06);
+  --glass-edge:rgba(255,255,255,.14);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--night);color:var(--mist);
+  font:400 17px/1.6 var(--body);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+a{color:inherit}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--mono)}
+
+.sky{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(1px 1px at 12% 18%,rgba(255,255,255,.7),transparent 60%),
+    radial-gradient(1px 1px at 27% 62%,rgba(255,255,255,.45),transparent 60%),
+    radial-gradient(1.5px 1.5px at 44% 12%,rgba(255,255,255,.6),transparent 60%),
+    radial-gradient(1px 1px at 63% 34%,rgba(255,255,255,.5),transparent 60%),
+    radial-gradient(1px 1px at 78% 8%,rgba(255,255,255,.65),transparent 60%),
+    radial-gradient(1.5px 1.5px at 88% 46%,rgba(255,255,255,.4),transparent 60%),
+    radial-gradient(1px 1px at 6% 82%,rgba(255,255,255,.4),transparent 60%),
+    radial-gradient(1px 1px at 52% 88%,rgba(255,255,255,.35),transparent 60%),
+    radial-gradient(900px 520px at 75% 0%,rgba(91,80,240,.28),transparent 70%),
+    radial-gradient(700px 480px at 0% 40%,rgba(46,216,240,.08),transparent 70%);
+}
+
+header.top{
+  position:sticky;top:0;z-index:20;
+  backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);
+  background:rgba(13,11,34,.6);border-bottom:1px solid var(--line);
+}
+.top .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 19px var(--display);letter-spacing:-.01em}
+.brand img{width:30px;height:30px}
+.top nav{margin-left:auto;display:flex;align-items:center;gap:22px}
+.top nav a{text-decoration:none;color:var(--haze);font-weight:500;font-size:15px}
+.top nav a:hover{color:var(--mist)}
+.top nav a.btn{color:#fff}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer;
+  font:600 16px var(--body);border-radius:999px;border:1px solid transparent;
+  padding:14px 26px;white-space:nowrap;transition:transform .15s ease,box-shadow .2s ease,background .2s ease;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--indigo),#7A6CFA 55%,var(--cyan));
+  color:#fff;box-shadow:0 10px 30px -10px rgba(91,80,240,.8),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 16px 40px -12px rgba(46,216,240,.6),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-ghost{background:var(--glass);border-color:var(--glass-edge);color:var(--mist)}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.btn-sm{padding:8px 16px;font-size:14px}
+.btn svg{width:18px;height:18px}
+
+.hero{padding:88px 0 64px}
+.hero .wrap{display:grid;grid-template-columns:1.02fr 1fr;gap:56px;align-items:center}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font:500 13px var(--mono);color:var(--crema);
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:22px;
+}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--crema);box-shadow:0 0 12px var(--crema)}
+h1{
+  font:800 clamp(44px,6.4vw,82px)/.96 var(--display);letter-spacing:-.035em;margin:0 0 24px;
+}
+h1 .soft{color:var(--haze);font-weight:500}
+.lede{font-size:19px;color:#C9C6EE;max-width:520px;margin:0 0 34px}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.meta{display:flex;flex-wrap:wrap;row-gap:4px;margin-top:22px;font:400 13px var(--mono);color:var(--haze);letter-spacing:.02em}
+.meta span+span::before{content:"·";margin:0 10px;color:rgba(156,152,201,.5)}
+
+.screen{
+  position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/11;
+  background:
+    radial-gradient(120% 90% at 80% 110%,#2ED8F0 0%,transparent 45%),
+    radial-gradient(120% 100% at 0% 100%,#7A3CF0 0%,transparent 55%),
+    linear-gradient(160deg,#2A2470 0%,#141033 70%);
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08);
+}
+.menubar{
+  height:28px;display:flex;align-items:center;gap:16px;padding:0 14px;
+  background:rgba(20,18,50,.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  font:500 13px -apple-system,var(--body);color:rgba(255,255,255,.92);
+}
+.menubar .apple{width:13px;height:15px}
+.menubar .r{margin-left:auto;display:flex;gap:14px;align-items:center}
+.menubar .cup{display:grid;place-items:center;width:26px;height:22px;border-radius:6px;background:rgba(255,255,255,.18)}
+.menubar .cup svg{width:16px;height:16px}
+
+.km-menu{
+  position:absolute;top:38px;right:40px;width:min(330px,82%);
+  border-radius:20px;padding:12px;display:grid;gap:10px;
+  background:rgba(32,28,78,.55);border:1px solid var(--glass-edge);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.6);
+  font-family:-apple-system,var(--body);
+}
+.card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px}
+.km-head{display:flex;align-items:center;gap:12px;cursor:pointer;border:0;width:100%;text-align:left;color:inherit;font:inherit}
+.orb{
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:rgba(255,255,255,.12);transition:background .3s,box-shadow .3s;
+}
+.orb svg{width:22px;height:22px;color:#BDB9E6;transition:color .3s}
+.on .orb{background:linear-gradient(135deg,var(--indigo),var(--cyan));box-shadow:0 0 22px rgba(46,216,240,.45)}
+.on .orb svg{color:#fff}
+.km-head b{display:block;font-size:14.5px;font-weight:600}
+.km-head small{display:block;font-size:11.5px;color:var(--haze)}
+.switch{
+  margin-left:auto;width:40px;height:23px;border-radius:999px;background:rgba(255,255,255,.22);
+  position:relative;flex:none;transition:background .25s;
+}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .25s}
+.on .switch{background:#3B82F6}
+.on .switch::after{transform:translateX(17px)}
+.timer-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;margin-bottom:9px}
+.timer-top span{font-weight:400;color:var(--haze);font-size:12px}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.chip{
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.09);color:var(--mist);
+  border-radius:999px;padding:5px 0;font:500 12px -apple-system,var(--body);cursor:pointer;
+}
+.chip:hover{background:rgba(255,255,255,.16)}
+.custom{display:flex;gap:6px}
+.custom div{flex:1;border-radius:8px;background:rgba(255,255,255,.06);padding:6px 10px;font-size:12px;color:rgba(233,232,255,.45)}
+.custom i{width:32px;border-radius:999px;background:rgba(255,255,255,.09);display:grid;place-items:center;font-style:normal;font-size:10px;color:var(--haze)}
+.count{display:none;align-items:center;gap:12px}
+.count .big{font:600 26px -apple-system,var(--body);font-variant-numeric:tabular-nums}
+.count small{display:block;color:var(--haze);font-size:11.5px}
+.count button{margin-left:auto}
+.timing .count{display:flex}
+.timing .idle{display:none}
+.km-foot{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 0}
+.pill{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--mist);font-family:inherit;cursor:pointer}
+.km-foot small{color:rgba(156,152,201,.7);font-size:10.5px}
+
+.dim{
+  position:fixed;inset:0;z-index:50;pointer-events:none;background:#000;opacity:0;
+  transition:opacity 2.4s ease;display:grid;place-items:center;
+}
+.dim.show{opacity:.62}
+.dim p{
+  font:600 15px var(--body);color:var(--mist);background:rgba(13,11,34,.9);border:1px solid var(--line);
+  padding:12px 18px;border-radius:999px;opacity:0;transition:opacity .6s ease .8s;
+}
+.dim.show p{opacity:1}
+
+section{padding:96px 0}
+.kicker{font:500 13px var(--mono);color:var(--cyan);letter-spacing:.05em;text-transform:uppercase;margin:0 0 14px}
+h2{font:700 clamp(32px,4.2vw,52px)/1.02 var(--display);letter-spacing:-.03em;margin:0 0 18px;max-width:760px}
+.sub{color:#C1BEE8;max-width:620px;margin:0 0 48px;font-size:18px}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feature{padding:26px;border-radius:var(--radius);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--line)}
+.feature svg{width:26px;height:26px;color:var(--cyan);margin-bottom:16px}
+.feature h3{font:700 20px var(--display);letter-spacing:-.01em;margin:0 0 6px}
+.feature p{margin:0;color:var(--haze);font-size:15.5px}
+
+.bot-grid{display:grid;grid-template-columns:400px 1fr;gap:56px;align-items:start}
+.phone{
+  border-radius:40px;padding:12px;background:#05040F;border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.9);position:sticky;top:96px;
+}
+.tg{border-radius:30px;overflow:hidden;background:#0E1621;font:400 14px -apple-system,var(--body)}
+.tg-head{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#17212B}
+.tg-head img{width:36px;height:36px;border-radius:50%}
+.tg-head b{display:block;font-size:15px}
+.tg-head small{color:#6C7883;font-size:12px}
+.tg-body{
+  padding:14px 12px 16px;display:flex;flex-direction:column;gap:8px;min-height:540px;
+  background:radial-gradient(400px 300px at 80% 0%,rgba(91,80,240,.18),transparent 70%),#0E1621;
+}
+.msg{max-width:84%;padding:8px 12px;border-radius:14px;white-space:pre-line;line-height:1.42}
+.msg.me{align-self:flex-end;background:#2B5278;border-bottom-right-radius:4px;font-family:var(--mono);font-size:13px}
+.msg.bot{align-self:flex-start;background:#182533;border-bottom-left-radius:4px}
+.msg .cmd{color:#6AB3F3}
+.kb{align-self:flex-start;display:flex;gap:6px;max-width:84%;margin-top:-4px}
+.kb span{flex:1;background:rgba(43,82,120,.55);border-radius:10px;padding:7px 10px;text-align:center;font-size:13px}
+.msg,.kb{opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease}
+.msg.in,.kb.in{opacity:1;transform:none}
+
+.cmd-groups{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.group{padding:22px;border-radius:var(--radius);border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.group h3{display:flex;align-items:center;gap:10px;font:700 17px var(--display);margin:0 0 12px}
+.group h3 svg{width:18px;height:18px;color:var(--cyan)}
+.group ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.group li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;font-size:14.5px;color:var(--haze)}
+.group code{font:500 13px var(--mono);color:var(--mist);background:rgba(91,80,240,.18);border:1px solid rgba(91,80,240,.35);padding:2px 7px;border-radius:6px;white-space:nowrap}
+.shield{color:var(--crema);font-size:12px;margin-left:4px}
+.note{margin-top:22px;font-size:14.5px;color:var(--haze)}
+.note b{color:var(--crema);font-weight:600}
+
+.settings-wrap{display:grid;grid-template-columns:1fr 520px;gap:56px;align-items:center}
+.win{
+  border-radius:16px;overflow:hidden;background:#1E1D2E;border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.85);font:400 13.5px -apple-system,var(--body);
+}
+.win-bar{position:relative;height:38px;display:flex;align-items:center;justify-content:center;background:#26253A;border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;color:#C9C8DA;font-size:13px}
+.lights{position:absolute;left:14px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;background:#FF5F57}
+.lights i:nth-child(2){background:#FEBC2E}
+.lights i:nth-child(3){background:#3A394C}
+.seg{display:flex;justify-content:center;padding:16px 0 4px}
+.seg div{display:flex;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:#D7D6E8;font:500 13px -apple-system,var(--body);padding:5px 14px;border-radius:7px;cursor:pointer}
+.seg button[aria-selected="true"]{background:rgba(255,255,255,.16);color:#fff}
+.pane{display:none;padding:14px 18px 20px}
+.pane.active{display:block}
+.grp{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:11px;margin-top:10px}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px}
+.row+.row{border-top:1px solid rgba(255,255,255,.06)}
+.row .tog{margin-left:auto;width:32px;height:19px;border-radius:999px;background:#3B82F6;position:relative;flex:none}
+.row .tog::after{content:"";position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:#fff}
+.row .tog.off{background:rgba(255,255,255,.2)}
+.row .tog.off::after{right:auto;left:2px}
+.cap{color:#8E8CA6;font-size:12px;padding:8px 4px 0;line-height:1.45}
+.field{flex:1;border-radius:6px;background:#141322;border:1px solid rgba(255,255,255,.12);padding:5px 9px;font:12px var(--mono);color:#B9B7CC;letter-spacing:.12em}
+.ok{color:#34D399}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#3B82F6;flex:none}
+.avatar svg{width:15px;height:15px;color:#fff}
+.chat small{display:block;color:#8E8CA6;font-size:11.5px}
+.mini{font:500 12px var(--mono)}
+.about{text-align:center;padding:12px 0 6px}
+.about img{width:72px;height:72px;margin:0 auto 8px}
+.about b{font-size:20px}
+.about p{margin:4px 0;color:#9F9DB5}
+.about .links a{color:#60A5FA;text-decoration:none;margin:0 8px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.step{padding:26px;border-radius:var(--radius);border:1px solid var(--line);background:rgba(255,255,255,.03);counter-increment:s;position:relative}
+.step::before{content:counter(s);font:800 54px/1 var(--display);color:transparent;-webkit-text-stroke:1px rgba(46,216,240,.55);display:block;margin-bottom:14px}
+.step h3{font:700 19px var(--display);margin:0 0 6px}
+.step p{margin:0;color:var(--haze);font-size:15px}
+.step code{font:12.5px var(--mono);background:rgba(255,255,255,.07);padding:2px 6px;border-radius:5px;color:var(--mist)}
+
+.closer{text-align:center;padding:110px 0 120px}
+.closer h2{margin:0 auto 18px}
+.closer .sub{margin:0 auto 34px}
+
+footer{border-top:1px solid var(--line);padding:30px 0 40px;color:var(--haze);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+footer a{color:var(--mist);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+@media (max-width:980px){
+  .hero .wrap>*,.bot-grid>*,.settings-wrap>*{min-width:0}
+  .hero .wrap,.bot-grid,.settings-wrap{grid-template-columns:1fr}
+  .phone{position:static;max-width:400px;margin:0 auto}
+  .features,.steps{grid-template-columns:1fr}
+  .settings-wrap .win{order:2}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .hero{padding:56px 0 40px}
+  section{padding:72px 0}
+  .top nav a:not(.btn){display:none}
+  .cmd-groups{grid-template-columns:1fr}
+  .km-menu{right:16px}
+  .screen{aspect-ratio:auto;min-height:330px}
+  .km-menu{left:12px;right:12px;width:auto}
+  .menubar span:not(.cup):not(#clock){display:none}
+  .cta-row .btn{flex:1;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+  .msg,.kb{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M3 21h15"/><path d="M8 3c-.7 1 .7 2 0 3M12 3c-.7 1 .7 2 0 3"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10 14"/><path d="m21 3-7 18-4-7-7-4 18-7z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.3 7a8 8 0 1 0 11.4 0"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/logo.png" alt="">KeepMeUp</a>
+    <nav aria-label="Main">
+      <a href="#telegram">Telegram bot</a>
+      <a href="#settings">Settings</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/amirhp-com/KeepMeUp">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="https://github.com/amirhp-com/KeepMeUp/releases/latest/download/KeepMeUp.zip">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow">Free · open source · macOS</p>
+        <h1>Your Mac stays up.<br><span class="soft">You get some sleep.</span></h1>
+        <p class="lede">KeepMeUp is a tiny menu bar app that keeps your Mac awake whatever your Energy settings say. Set a timer for when it should sleep, lock or shut down, and control the whole thing from Telegram.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/amirhp-com/KeepMeUp/releases/latest/download/KeepMeUp.zip">
+            <svg><use href="#i-down"/></svg>Download for Mac
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/amirhp-com/KeepMeUp">
+            <svg><use href="#i-gh"/></svg>View source
+          </a>
+        </div>
+        <p class="meta"><span>macOS 13 or later</span><span>Apple Silicon &amp; Intel</span><span id="version">Latest release</span></p>
+      </div>
+
+      <div class="screen" aria-label="KeepMeUp menu on a Mac desktop">
+        <div class="menubar">
+          <svg class="apple" viewBox="0 0 17 20" fill="currentColor" aria-hidden="true"><path d="M14.1 10.6c0-2.5 2-3.7 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.3-.1 1.7-.8 3.3-.8 1.5 0 1.9.8 3.3.8 1.4 0 2.2-1.2 3-2.5.9-1.4 1.3-2.8 1.3-2.8 0 0-2.6-1-2.6-4.2zM11.6 3.1c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>
+          <b>Finder</b><span>File</span><span>Edit</span><span>View</span>
+          <div class="r">
+            <span class="cup" aria-hidden="true"><svg><use href="#i-cup"/></svg></span>
+            <span id="clock">10:42 PM</span>
+          </div>
+        </div>
+        <div class="km-menu" id="menu">
+          <button class="card km-head" id="toggle" aria-pressed="false">
+            <span class="orb"><svg><use href="#i-cup"/></svg></span>
+            <span><b id="state">Sleep as usual</b><small id="state-sub">Click to keep your Mac awake</small></span>
+            <span class="switch" aria-hidden="true"></span>
+          </button>
+          <div class="card" id="timer">
+            <div class="idle">
+              <div class="timer-top">Timer <span>Stop keeping awake ▾</span></div>
+              <div class="chips">
+                <button class="chip" data-s="900">15m</button>
+                <button class="chip" data-s="1800">30m</button>
+                <button class="chip" data-s="3600">1h</button>
+                <button class="chip" data-s="7200">2h</button>
+              </div>
+              <div class="custom"><div>Custom: 45m, 1h30m, 2:15</div><i>▶</i></div>
+            </div>
+            <div class="count">
+              <span class="orb" style="width:36px;height:36px"><svg><use href="#i-timer"/></svg></span>
+              <div><small>Stop keeping awake</small><span class="big" id="left">0:00</span></div>
+              <button class="pill" id="cancel">Cancel</button>
+            </div>
+          </div>
+          <div class="km-foot">
+            <span class="pill">⚙ Settings</span>
+            <small>v1.2.0</small>
+            <span class="pill">⏻ Quit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <p class="kicker">What it does</p>
+      <h2>Awake on your terms, asleep on schedule.</h2>
+      <p class="sub">One switch keeps the display on and the screensaver away. A timer decides what happens next.</p>
+      <div class="features">
+        <div class="feature"><svg><use href="#i-cup"/></svg><h3>One-click keep-awake</h3><p>Blocks display sleep, the screensaver and idle sleep. Turn it off and macOS goes back to your normal settings.</p></div>
+        <div class="feature"><svg><use href="#i-timer"/></svg><h3>Timers that act</h3><p>In 30 minutes or 2 hours, stop keeping awake, turn the display off, start the screensaver, lock, sleep, restart or shut down.</p></div>
+        <div class="feature"><svg><use href="#i-send"/></svg><h3>Telegram remote</h3><p>Check on your Mac, take screenshots, open apps and fetch files from your phone. Only chats you approve can use it.</p></div>
+        <div class="feature"><svg><use href="#i-shield"/></svg><h3>Private by design</h3><p>No servers, no accounts, no analytics. Sensitive commands are off until you turn them on with your password or Touch ID.</p></div>
+        <div class="feature"><svg><use href="#i-refresh"/></svg><h3>Signed updates</h3><p>The app checks GitHub for new versions and only installs releases signed with the KeepMeUp release key.</p></div>
+        <div class="feature"><svg><use href="#i-chip"/></svg><h3>Native and tiny</h3><p>Written in Swift and SwiftUI. A universal app for Apple Silicon and Intel, with a glass design on macOS 26.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="telegram">
+    <div class="wrap bot-grid">
+      <div class="phone" aria-label="Example Telegram conversation with the KeepMeUp bot">
+        <div class="tg">
+          <div class="tg-head"><img src="assets/logo.png" alt=""><div><b>KeepMeUp</b><small>bot</small></div></div>
+          <div class="tg-body" id="chat">
+            <div class="msg me">/status</div>
+            <div class="msg bot">☕️ Keep-awake is ON
+⏰ Shut down in 1h 12m
+🔋 84% · on power adapter
+💻 Studio MacBook</div>
+            <div class="msg me">/apps</div>
+            <div class="msg bot">🧩 Running apps — tap /quit_N to quit one
+
+1. Finder ● <span class="cmd">/quit_1</span>
+2. Safari <span class="cmd">/quit_2</span>
+3. Xcode <span class="cmd">/quit_3</span></div>
+            <div class="msg me">/quit_2</div>
+            <div class="msg bot">👋 Asked Safari to quit.</div>
+            <div class="msg me">/dl invoice</div>
+            <div class="msg bot">🔍 “invoice” in Downloads
+
+1. 📄 invoice-sept.pdf
+    ~/Downloads
+    <span class="cmd">/get_1</span> · <span class="cmd">/openfile_1</span></div>
+            <div class="msg me">/shutdown</div>
+            <div class="msg bot">⚠️ Shut down Studio MacBook now?</div>
+            <div class="kb"><span>✅ Yes, shut down</span><span>Cancel</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="kicker">Telegram bot</p>
+        <h2>Your Mac, from the other room. Or another country.</h2>
+        <p class="sub">Create a bot with @BotFather, paste its token, tap Start and click Allow on your Mac. Lists come with tappable links like <span class="mono">/quit_2</span> and <span class="mono">/get_1</span>, so you rarely have to type.</p>
+
+        <div class="cmd-groups">
+          <div class="group"><h3><svg><use href="#i-cup"/></svg>Keep awake</h3><ul>
+            <li><code>/on 2h</code>Keep awake for a while</li>
+            <li><code>/off</code>Back to normal sleep</li>
+            <li><code>/timer 1h shutdown</code>Schedule an action</li>
+            <li><code>/status</code>State, timer and battery</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-power"/></svg>Power and screen</h3><ul>
+            <li><code>/lock</code>Lock the screen</li>
+            <li><code>/displayoff</code>Turn the display off</li>
+            <li><code>/sleep</code>Sleep now</li>
+            <li><code>/shutdown</code>Asks you first</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-grid"/></svg>Apps and desktop</h3><ul>
+            <li><code>/open</code>Installed apps, tap to launch</li>
+            <li><code>/apps</code>Running apps, tap to quit</li>
+            <li><code>/desktop</code>Hide everything</li>
+            <li><code>/show</code>Bring apps back</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-camera"/></svg>Screen and info</h3><ul>
+            <li><code>/screenshot</code><span>Every display <span class="shield">🛡</span></span></li>
+            <li><code>/info</code>Battery, memory, disk</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-folder"/></svg>Files</h3><ul>
+            <li><code>/desk</code><span>Search or list Desktop <span class="shield">🛡</span></span></li>
+            <li><code>/docs</code><span>Search or list Documents <span class="shield">🛡</span></span></li>
+            <li><code>/dl</code><span>Search or list Downloads <span class="shield">🛡</span></span></li>
+            <li><code>/recent</code><span>Recently opened files <span class="shield">🛡</span></span></li>
+            <li><code>/get_1</code><span>Send a file to the chat <span class="shield">🛡</span></span></li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-term"/></svg>Terminal</h3><ul>
+            <li><code>/terminal</code>Open Terminal</li>
+            <li><code>/run df -h</code><span>Reply with the output <span class="shield">🛡</span></span></li>
+            <li><code>/term top</code><span>Run it and send a screenshot <span class="shield">🛡</span></span></li>
+          </ul></div>
+        </div>
+        <p class="note"><b>🛡 Off by default.</b> These commands can see your screen, read files or run code. Turning one on asks for your password or Touch ID, and you can turn any command off in Settings → Commands.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings">
+    <div class="wrap settings-wrap">
+      <div>
+        <p class="kicker">Settings</p>
+        <h2>Everything in one small window.</h2>
+        <p class="sub">Launch at login, a guided Telegram setup, a switch for every bot command and one-click updates. Click the tabs to look around.</p>
+      </div>
+      <div class="win" aria-label="KeepMeUp settings window">
+        <div class="win-bar"><span class="lights"><i></i><i></i><i></i></span>KeepMeUp Settings</div>
+        <div class="seg"><div role="tablist">
+          <button role="tab" aria-selected="true" data-pane="p-general">General</button>
+          <button role="tab" aria-selected="false" data-pane="p-telegram">Telegram</button>
+          <button role="tab" aria-selected="false" data-pane="p-commands">Commands</button>
+          <button role="tab" aria-selected="false" data-pane="p-about">About</button>
+        </div></div>
+
+        <div class="pane active" id="p-general" role="tabpanel">
+          <div class="grp">
+            <div class="row">Launch KeepMeUp at login<span class="tog"></span></div>
+            <div class="row">Resume keeping awake after relaunch<span class="tog"></span></div>
+          </div>
+          <p class="cap">While active, KeepMeUp blocks display sleep, the screensaver and idle system sleep, no matter what Energy or Lock Screen settings say.</p>
+        </div>
+
+        <div class="pane" id="p-telegram" role="tabpanel">
+          <div class="grp">
+            <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">Bot token<span class="field">••••••••••••••••••••••••</span></div>
+            <div class="row">Enable Telegram control<span class="tog"></span></div>
+            <div class="row ok">✓ Running as @keepmeupbot</div>
+          </div>
+          <div class="grp">
+            <div class="row chat"><span class="avatar"><svg><use href="#i-person"/></svg></span><div>Alex<small>@alex · Private chat · 123456789</small></div></div>
+            <div class="row" style="color:#60A5FA">⊕ Pair another chat</div>
+          </div>
+        </div>
+
+        <div class="pane" id="p-commands" role="tabpanel">
+          <div class="grp">
+            <div class="row"><span class="mini">/screenshot</span><span class="shield">🛡</span><span class="tog"></span></div>
+            <div class="row"><span class="mini">/apps</span><span class="tog"></span></div>
+            <div class="row"><span class="mini">/run &lt;command&gt;</span><span class="shield">🛡</span><span class="tog off"></span></div>
+            <div class="row"><span class="mini">/recent [days]</span><span class="shield">🛡</span><span class="tog off"></span></div>
+          </div>
+          <p class="cap">Turning on a command marked with a shield asks for your password or Touch ID.</p>
+        </div>
+
+        <div class="pane" id="p-about" role="tabpanel">
+          <div class="about">
+            <img src="assets/logo.png" alt="">
+            <b>KeepMeUp</b>
+            <p>Version 1.2.0 · <span class="ok">You're up to date</span></p>
+            <p class="links"><a href="https://amirhp.com">AmirhpCom</a><a href="https://github.com/amirhp-com/KeepMeUp">GitHub</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <p class="kicker">Install</p>
+      <h2>Three steps, about a minute.</h2>
+      <p class="sub">KeepMeUp is free and not notarized by Apple, so macOS asks you to confirm the first time you open it.</p>
+      <div class="steps">
+        <div class="step"><h3>Download</h3><p>Get <code>KeepMeUp.zip</code> from the latest release and unzip it.</p></div>
+        <div class="step"><h3>Move to Applications</h3><p>Drag <code>KeepMeUp.app</code> into your Applications folder.</p></div>
+        <div class="step"><h3>Open it once</h3><p>Right-click the app and choose <b>Open</b>. The cup appears in your menu bar.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="closer">
+    <div class="wrap">
+      <h2>Leave the downloads running. Go to bed.</h2>
+      <p class="sub">KeepMeUp is free, open source and MIT licensed.</p>
+      <a class="btn btn-primary" href="https://github.com/amirhp-com/KeepMeUp/releases/latest/download/KeepMeUp.zip"><svg><use href="#i-down"/></svg>Download for Mac</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 <a href="https://amirhp.com">AmirhpCom</a> · MIT License</span>
+    <span><a href="https://github.com/amirhp-com/KeepMeUp">GitHub</a> · <a href="https://github.com/amirhp-com/KeepMeUp/releases">Releases</a> · <a href="https://github.com/amirhp-com/KeepMeUp/issues">Report an issue</a></span>
+  </div>
+</footer>
+
+<div class="dim" id="dim" aria-hidden="true"><p>Your Mac would be dimming now. Flip the KeepMeUp switch to stop it.</p></div>
+
+<script>
+(() => {
+  const menu = document.getElementById('menu');
+  const toggle = document.getElementById('toggle');
+  const state = document.getElementById('state');
+  const sub = document.getElementById('state-sub');
+  const timer = document.getElementById('timer');
+  const left = document.getElementById('left');
+  const dim = document.getElementById('dim');
+  let awake = false, end = 0, tick = null, idle = null;
+
+  function setAwake(on) {
+    awake = on;
+    menu.classList.toggle('on', on);
+    toggle.setAttribute('aria-pressed', on);
+    state.textContent = on ? 'Staying awake' : 'Sleep as usual';
+    sub.textContent = on ? 'Display, screensaver and sleep are held off' : 'Click to keep your Mac awake';
+    if (!on) stopTimer();
+    wake();
+  }
+
+  function fmt(s) {
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`;
+  }
+
+  function stopTimer() {
+    clearInterval(tick);
+    timer.classList.remove('timing');
+  }
+
+  function render() {
+    const s = Math.max(0, Math.round((end - Date.now()) / 1000));
+    left.textContent = fmt(s);
+    if (s === 0) { stopTimer(); setAwake(false); }
+  }
+
+  toggle.addEventListener('click', () => setAwake(!awake));
+  document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+    if (!awake) setAwake(true);
+    end = Date.now() + Number(chip.dataset.s) * 1000;
+    timer.classList.add('timing');
+    render();
+    clearInterval(tick);
+    tick = setInterval(render, 1000);
+  }));
+  document.getElementById('cancel').addEventListener('click', stopTimer);
+
+  function wake() {
+    dim.classList.remove('show');
+    clearTimeout(idle);
+    if (!awake) idle = setTimeout(() => dim.classList.add('show'), 25000);
+  }
+  ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(e => addEventListener(e, wake, { passive: true }));
+  wake();
+
+  const clock = document.getElementById('clock');
+  const showTime = () => clock.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  showTime(); setInterval(showTime, 15000);
+
+  document.querySelectorAll('[role=tab]').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('[role=tab]').forEach(t => t.setAttribute('aria-selected', t === tab));
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === tab.dataset.pane));
+  }));
+
+  const bubbles = document.querySelectorAll('#chat .msg, #chat .kb');
+  const reveal = () => bubbles.forEach((b, i) => setTimeout(() => b.classList.add('in'), i * 260));
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { reveal(); io.disconnect(); }
+    }, { threshold: .25 });
+    io.observe(document.getElementById('chat'));
+  } else {
+    bubbles.forEach(b => b.classList.add('in'));
+  }
+
+  fetch('https://api.github.com/repos/amirhp-com/KeepMeUp/releases/latest')
+    .then(r => r.ok ? r.json() : null)
+    .then(j => { if (j && j.tag_name) document.getElementById('version').textContent = `Version ${j.tag_name.replace(/^v/, '')}`; })
+    .catch(() => {});
+})();
+</script>
+</body>
+</html>
