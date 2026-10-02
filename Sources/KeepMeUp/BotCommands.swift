@@ -1,7 +1,7 @@
 import Foundation
 
 enum BotCommand: String, CaseIterable, Identifiable {
-    case status, on, off, timer, cancel
+    case status, on, off, timer, cancel, caffeinate
     case displayoff, screensaver, lock, sleep, restart, shutdown, brightness
     case desktop, show
     case screenshot, info
@@ -10,7 +10,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
     case say, notify, clip
     case wifi, ip
     case terminal, term, run
-    case find, desk, docs, dl, recent, get, openfile
+    case find, desk, docs, dl, recent, get, openfile, upload
+    case schedules, schedule, unschedule
     case help
 
     var id: String { rawValue }
@@ -26,6 +27,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case network = "Network"
         case shell = "Terminal and shell"
         case files = "Files"
+        case automation = "Automation"
 
         var id: String { rawValue }
 
@@ -41,13 +43,14 @@ enum BotCommand: String, CaseIterable, Identifiable {
             case .network: return "wifi"
             case .shell: return "terminal"
             case .files: return "folder"
+            case .automation: return "clock.arrow.circlepath"
             }
         }
     }
 
     var group: Group? {
         switch self {
-        case .status, .on, .off, .timer, .cancel: return .awake
+        case .status, .on, .off, .timer, .cancel, .caffeinate: return .awake
         case .displayoff, .screensaver, .lock, .sleep, .restart, .shutdown, .brightness: return .power
         case .desktop, .show: return .windows
         case .screenshot, .info: return .info
@@ -56,7 +59,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .say, .notify, .clip: return .system
         case .wifi, .ip: return .network
         case .terminal, .term, .run: return .shell
-        case .find, .desk, .docs, .dl, .recent, .get, .openfile: return .files
+        case .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload: return .files
+        case .schedules, .schedule, .unschedule: return .automation
         case .help: return nil
         }
     }
@@ -66,6 +70,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .on: return "/on [time]"
         case .off: return "/off [time]"
         case .timer: return "/timer <time> <action>"
+        case .caffeinate: return "/caffeinate <app>"
         case .brightness: return "/brightness [0-100]"
         case .open: return "/open [name or number]"
         case .quit: return "/quit [name or number]"
@@ -82,6 +87,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .recent: return "/recent [days]"
         case .get: return "/get <path or number>"
         case .openfile: return "/openfile <path or number>"
+        case .schedule: return "/schedule <time> <action> [weekdays]"
+        case .unschedule: return "/unschedule <number>"
         default: return "/\(rawValue)"
         }
     }
@@ -93,6 +100,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .off: return "Stop keeping awake, now or later"
         case .timer: return "Schedule an action"
         case .cancel: return "Cancel the running timer"
+        case .caffeinate: return "Keep awake only while an app runs"
         case .displayoff: return "Turn the display off"
         case .screensaver: return "Start the screensaver"
         case .lock: return "Lock the screen"
@@ -127,6 +135,10 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .recent: return "Files you opened recently (Finder Recents)"
         case .get: return "Send a file to this chat"
         case .openfile: return "Open a file on the Mac"
+        case .upload: return "Save a file you send into Downloads"
+        case .schedules: return "List scheduled actions"
+        case .schedule: return "Add a scheduled action"
+        case .unschedule: return "Remove a scheduled action"
         case .help: return "Show all commands"
         }
     }
@@ -135,7 +147,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
 
     var isSensitive: Bool {
         switch self {
-        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .screenshot, .clip: return true
+        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload, .screenshot, .clip: return true
         default: return false
         }
     }
