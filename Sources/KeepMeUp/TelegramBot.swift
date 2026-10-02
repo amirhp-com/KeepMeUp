@@ -55,7 +55,8 @@ final class TelegramBot: ObservableObject {
 
     func start() {
         stop()
-        guard let saved = Keychain.read(Self.tokenAccount), !saved.isEmpty else {
+        let saved = TokenStore.read()
+        guard !saved.isEmpty else {
             state = .failed("Add a bot token first")
             return
         }

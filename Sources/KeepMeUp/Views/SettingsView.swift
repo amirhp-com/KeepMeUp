@@ -96,7 +96,7 @@ struct GeneralSettingsView: View {
 struct TelegramSettingsView: View {
     @ObservedObject private var prefs = Preferences.shared
     @ObservedObject private var bot = TelegramBot.shared
-    @State private var token = Keychain.read(TelegramBot.tokenAccount) ?? ""
+    @State private var token = TokenStore.read()
     @State private var newChatID = ""
     @State private var revealToken = false
 
@@ -195,7 +195,7 @@ struct TelegramSettingsView: View {
 
     @ViewBuilder
     private var onboarding: some View {
-        let hasToken = !(Keychain.read(TelegramBot.tokenAccount) ?? "").isEmpty
+        let hasToken = !TokenStore.read().isEmpty
         let running = bot.isRunning
         StepRow(number: 1, done: hasToken && running, title: "Connect your bot", detail: "Paste the token above, turn on Telegram control and click Save & Connect.")
         StepRow(number: 2, done: false, active: running && !bot.awaitingApproval, title: "Start the bot in Telegram", detail: running ? "Open \(bot.botUsername.map { "@\($0)" } ?? "your bot") and tap Start." : "Available once the bot is connected.") {
@@ -249,7 +249,7 @@ struct TelegramSettingsView: View {
     }
 
     private func saveAndStart() {
-        Keychain.save(token.trimmingCharacters(in: .whitespacesAndNewlines), for: TelegramBot.tokenAccount)
+        TokenStore.save(token)
         if prefs.botEnabled { bot.start() }
     }
 }
