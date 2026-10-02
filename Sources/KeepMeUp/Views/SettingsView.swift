@@ -52,6 +52,7 @@ struct SettingsView: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 480)
+        .noFocusRing()
     }
 }
 
