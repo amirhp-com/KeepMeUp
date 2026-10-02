@@ -394,7 +394,7 @@ footer a:hover{text-decoration:underline}
           </div>
           <div class="km-foot">
             <span class="pill">⚙ Settings</span>
-            <small>v1.2.0</small>
+            <small>v<span class="js-ver">1.3.0</span></small>
             <span class="pill">⏻ Quit</span>
           </div>
         </div>
@@ -565,7 +565,7 @@ footer a:hover{text-decoration:underline}
           <div class="about">
             <img src="assets/logo.png" alt="">
             <b>KeepMeUp</b>
-            <p>Version 1.2.0 · <span class="ok">You're up to date</span></p>
+            <p>Version <span class="js-ver">1.3.0</span> · <span class="ok">You're up to date</span></p>
             <p class="links"><a href="https://amirhp.com">AmirhpCom</a><a href="https://github.com/amirhp-com/KeepMeUp">GitHub</a></p>
           </div>
         </div>
@@ -696,7 +696,12 @@ footer a:hover{text-decoration:underline}
 
   fetch('https://api.github.com/repos/amirhp-com/KeepMeUp/releases/latest')
     .then(r => r.ok ? r.json() : null)
-    .then(j => { if (j && j.tag_name) document.getElementById('version').textContent = `Version ${j.tag_name.replace(/^v/, '')}`; })
+    .then(j => {
+      if (!j || !j.tag_name) return;
+      const v = j.tag_name.replace(/^v/, '');
+      document.getElementById('version').textContent = `Version ${v}`;
+      document.querySelectorAll('.js-ver').forEach(el => el.textContent = v);
+    })
     .catch(() => {});
 })();
 </script>
