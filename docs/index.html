@@ -324,6 +324,8 @@ footer a:hover{text-decoration:underline}
   <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
   <symbol id="i-person" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5l-5 4z"/><path d="M17 8a5 5 0 0 1 0 8"/></symbol>
+  <symbol id="i-bubble" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-4 3z"/><path d="M8 10h8M8 13h5"/></symbol>
 </svg>
 
 <header class="top">
@@ -332,6 +334,7 @@ footer a:hover{text-decoration:underline}
     <nav aria-label="Main">
       <a href="#telegram">Telegram bot</a>
       <a href="#settings">Settings</a>
+      <a href="#security">Security</a>
       <a href="#install">Install</a>
       <a href="https://github.com/amirhp-com/KeepMeUp">GitHub</a>
       <a class="btn btn-primary btn-sm" href="https://github.com/amirhp-com/KeepMeUp/releases/latest/download/KeepMeUp.zip">Download</a>
@@ -456,12 +459,14 @@ footer a:hover{text-decoration:underline}
           <div class="group"><h3><svg><use href="#i-cup"/></svg>Keep awake</h3><ul>
             <li><code>/on 2h</code>Keep awake for a while</li>
             <li><code>/off</code>Back to normal sleep</li>
-            <li><code>/timer 1h shutdown</code>Schedule an action</li>
+            <li><code>/timer 1h shutdown</code>Schedule once</li>
+            <li><code>/caffeinate Xcode</code>Awake while an app runs</li>
             <li><code>/status</code>State, timer and battery</li>
           </ul></div>
           <div class="group"><h3><svg><use href="#i-power"/></svg>Power and screen</h3><ul>
             <li><code>/lock</code>Lock the screen</li>
             <li><code>/displayoff</code>Turn the display off</li>
+            <li><code>/brightness 60</code>Set brightness</li>
             <li><code>/sleep</code>Sleep now</li>
             <li><code>/shutdown</code>Asks you first</li>
           </ul></div>
@@ -471,16 +476,33 @@ footer a:hover{text-decoration:underline}
             <li><code>/desktop</code>Hide everything</li>
             <li><code>/show</code>Bring apps back</li>
           </ul></div>
-          <div class="group"><h3><svg><use href="#i-camera"/></svg>Screen and info</h3><ul>
+          <div class="group"><h3><svg><use href="#i-sound"/></svg>Sound and media</h3><ul>
+            <li><code>/volume 40</code>Show or set volume</li>
+            <li><code>/mute</code>Mute or unmute</li>
+            <li><code>/play</code>Play or pause</li>
+            <li><code>/next</code>Skip track</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-camera"/></svg>Screen and camera</h3><ul>
             <li><code>/screenshot</code><span>Every display <span class="shield">🛡</span></span></li>
+            <li><code>/webcam</code><span>Camera photo <span class="shield">🛡</span></span></li>
             <li><code>/info</code>Battery, memory, disk</li>
+            <li><code>/wifi</code> · <code>/ip</code>Network details</li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-bubble"/></svg>System</h3><ul>
+            <li><code>/say Dinner's ready</code>Speak out loud</li>
+            <li><code>/notify Call back</code>Show a notification</li>
+            <li><code>/clip</code><span>Read or set clipboard <span class="shield">🛡</span></span></li>
           </ul></div>
           <div class="group"><h3><svg><use href="#i-folder"/></svg>Files</h3><ul>
-            <li><code>/desk</code><span>Search or list Desktop <span class="shield">🛡</span></span></li>
-            <li><code>/docs</code><span>Search or list Documents <span class="shield">🛡</span></span></li>
-            <li><code>/dl</code><span>Search or list Downloads <span class="shield">🛡</span></span></li>
+            <li><code>/desk</code> <code>/docs</code> <code>/dl</code><span>Search a folder <span class="shield">🛡</span></span></li>
             <li><code>/recent</code><span>Recently opened files <span class="shield">🛡</span></span></li>
             <li><code>/get_1</code><span>Send a file to the chat <span class="shield">🛡</span></span></li>
+            <li><code>/upload</code><span>Save a sent file <span class="shield">🛡</span></span></li>
+          </ul></div>
+          <div class="group"><h3><svg><use href="#i-refresh"/></svg>Automation</h3><ul>
+            <li><code>/schedule 01:00 sleep</code>Repeat daily</li>
+            <li><code>/schedules</code>List what's scheduled</li>
+            <li><code>/unschedule 1</code>Remove one</li>
           </ul></div>
           <div class="group"><h3><svg><use href="#i-term"/></svg>Terminal</h3><ul>
             <li><code>/terminal</code>Open Terminal</li>
@@ -488,7 +510,7 @@ footer a:hover{text-decoration:underline}
             <li><code>/term top</code><span>Run it and send a screenshot <span class="shield">🛡</span></span></li>
           </ul></div>
         </div>
-        <p class="note"><b>🛡 Off by default.</b> These commands can see your screen, read files or run code. Turning one on asks for your password or Touch ID, and you can turn any command off in Settings → Commands.</p>
+        <p class="note"><b>🛡 Off by default.</b> Commands that can see your screen, use the camera, read files or run code stay off until you, the Mac's owner, turn them on in Settings → Commands — which asks for your password or Touch ID. Everything is limited to the one Telegram chat you approve. You enable these at your own responsibility.</p>
       </div>
     </div>
   </section>
@@ -561,6 +583,20 @@ footer a:hover{text-decoration:underline}
         <div class="step"><h3>Move to Applications</h3><p>Drag <code>KeepMeUp.app</code> into your Applications folder.</p></div>
         <div class="step"><h3>Open it once</h3><p>Right-click the app and choose <b>Open</b>. The cup appears in your menu bar.</p></div>
       </div>
+    </div>
+  </section>
+
+  <section id="security">
+    <div class="wrap">
+      <p class="kicker">Security</p>
+      <h2>Powerful, and only in your hands.</h2>
+      <p class="sub">KeepMeUp is a remote tool for your own Mac. Because it's open source, you can read exactly what it does before you trust it.</p>
+      <div class="features">
+        <div class="feature"><svg><use href="#i-person"/></svg><h3>One account, approved by you</h3><p>Only the Telegram chats you approve in a dialog on the Mac can send commands. Pairing closes after the first chat, so strangers who find your bot can't request access.</p></div>
+        <div class="feature"><svg><use href="#i-shield"/></svg><h3>Sensitive commands off by default</h3><p>Screen, camera, file and shell commands stay off until you turn each one on, and the app asks for your password or Touch ID first.</p></div>
+        <div class="feature"><svg><use href="#i-lock"/></svg><h3>No servers, no accounts</h3><p>The bot token lives in a file only your macOS account can read. The app talks only to Telegram, with no KeepMeUp backend or analytics.</p></div>
+      </div>
+      <p class="note"><b>Use at your own risk.</b> Turning on the more powerful commands is your decision and your responsibility — anyone with access to an approved chat can use whatever you've enabled. Keep your Telegram account secure and enable only what you need. KeepMeUp is provided “as is”, without warranty, under the <a href="https://github.com/amirhp-com/KeepMeUp/blob/main/LICENSE" style="color:var(--cyan)">MIT License</a>.</p>
     </div>
   </section>
 
