@@ -91,7 +91,7 @@ struct MenuView: View {
     }
 
     private var timerCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Label("Timer", systemImage: "timer")
                     .font(.system(size: 13, weight: .semibold))
@@ -127,7 +127,7 @@ struct MenuView: View {
                 TextField("", text: $customText, prompt: Text("Custom: 45m, 1h30m, 2:15"))
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 7)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
                     .onSubmit(startCustom)
                 Button(action: startCustom) {
@@ -137,7 +137,7 @@ struct MenuView: View {
                 .disabled(DurationText.parse(customText) == nil)
             }
         }
-        .padding(12)
+        .padding(14)
         .glassCard()
     }
 
