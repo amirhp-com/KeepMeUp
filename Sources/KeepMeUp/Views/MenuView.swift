@@ -4,6 +4,8 @@ struct MenuView: View {
     @ObservedObject private var awake = AwakeManager.shared
     @ObservedObject private var scheduler = Scheduler.shared
     @ObservedObject private var updater = Updater.shared
+    @ObservedObject private var bot = TelegramBot.shared
+    @ObservedObject private var prefs = Preferences.shared
 
     @State private var action: PowerAction = .stopAwake
     @State private var customText = ""
@@ -22,6 +24,9 @@ struct MenuView: View {
                 updateBanner(latest)
             }
             footer
+            if prefs.botEnabled {
+                telegramStatus
+            }
         }
         .padding(14)
         .frame(width: 360)
@@ -160,6 +165,49 @@ struct MenuView: View {
         }
         .padding(10)
         .glassCard()
+    }
+
+    @ViewBuilder
+    private var telegramStatus: some View {
+        switch bot.state {
+        case .running(let name):
+            Label("Connected to Telegram as \(name)", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+        case .connecting:
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Connecting to Telegram…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        case .failed(let message):
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Telegram connection lost")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Button("Retry") { bot.start() }
+                    .compatGlassButton()
+            }
+            .padding(10)
+            .glassCard()
+        case .stopped:
+            EmptyView()
+        }
     }
 
     private var footer: some View {
