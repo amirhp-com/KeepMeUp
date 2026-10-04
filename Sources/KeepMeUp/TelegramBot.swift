@@ -26,7 +26,7 @@ final class TelegramBot: ObservableObject {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 70
         config.timeoutIntervalForResource = 600
-        config.waitsForConnectivity = true
+        config.waitsForConnectivity = false
         return URLSession(configuration: config)
     }()
 
@@ -102,24 +102,25 @@ final class TelegramBot: ObservableObject {
     }
 
     private func run() async {
-        do {
-            let me = try await call("getMe", [:])
-            let username = me["username"] as? String
-            await MainActor.run { self.botUsername = username }
-            await setState(.running(username.map { "@\($0)" } ?? "bot"))
-        } catch {
-            await setState(.failed(redact(error.localizedDescription)))
-            return
-        }
-        try? await registerProfile()
-        try? await registerCommands()
-        await refreshChats()
-
         var failures = 0
+        var registered = false
         while !Task.isCancelled {
             do {
+                if !registered {
+                    let me = try await call("getMe", [:])
+                    let username = me["username"] as? String
+                    await MainActor.run { self.botUsername = username }
+                    await setState(.running(username.map { "@\($0)" } ?? "bot"))
+                    try? await registerProfile()
+                    try? await registerCommands()
+                    await refreshChats()
+                    registered = true
+                }
                 let result = try await call("getUpdates", ["offset": offset, "timeout": 50, "allowed_updates": ["message", "callback_query"]])
-                failures = 0
+                if failures > 0 {
+                    failures = 0
+                    await setState(.running(botUsername.map { "@\($0)" } ?? "bot"))
+                }
                 guard let updates = result["result"] as? [[String: Any]] else { continue }
                 for update in updates {
                     if let id = (update["update_id"] as? NSNumber)?.int64Value { offset = id + 1 }
@@ -129,8 +130,13 @@ final class TelegramBot: ObservableObject {
                 return
             } catch {
                 if Task.isCancelled { return }
+                if case BotError.unauthorized(let text) = error {
+                    await setState(.failed(text))
+                    return
+                }
                 failures += 1
-                let delay = min(60, pow(2, Double(min(failures, 6))))
+                await setState(.failed(redact(error.localizedDescription)))
+                let delay = min(30, pow(2, Double(min(failures, 5))))
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
         }
@@ -839,7 +845,11 @@ final class TelegramBot: ObservableObject {
             throw BotError.message("Unexpected response")
         }
         guard json["ok"] as? Bool == true else {
-            throw BotError.message(json["description"] as? String ?? "Telegram error")
+            let description = json["description"] as? String ?? "Telegram error"
+            if (json["error_code"] as? NSNumber)?.intValue == 401 {
+                throw BotError.unauthorized("The bot token was rejected. Check it in Settings → Telegram.")
+            }
+            throw BotError.message(description)
         }
         if let result = json["result"] as? [String: Any] { return result }
         return json
@@ -847,9 +857,11 @@ final class TelegramBot: ObservableObject {
 
     enum BotError: LocalizedError {
         case message(String)
+        case unauthorized(String)
         var errorDescription: String? {
-            if case .message(let text) = self { return text }
-            return nil
+            switch self {
+            case .message(let text), .unauthorized(let text): return text
+            }
         }
     }
 }
