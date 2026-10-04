@@ -130,9 +130,17 @@ final class Permissions: ObservableObject {
     }
 
     private func automationState() -> PermissionState {
-        let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.systemevents")
+        let bundleID = "com.apple.systemevents"
+        let target = NSAppleEventDescriptor(bundleIdentifier: bundleID)
         guard let desc = target.aeDesc else { return .unknown }
-        let status = AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false)
+        var status = AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false)
+        if status == OSStatus(procNotFound) {
+            PowerActions.run("/usr/bin/open", ["-g", "-j", "-b", bundleID])
+            for _ in 0..<20 where status == OSStatus(procNotFound) {
+                Thread.sleep(forTimeInterval: 0.15)
+                status = AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false)
+            }
+        }
         switch status {
         case noErr: return .granted
         case OSStatus(errAEEventNotPermitted): return .denied
