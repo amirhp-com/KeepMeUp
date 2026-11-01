@@ -30,21 +30,7 @@ enum LaunchTip {
     }
 
     private static func statusButton() -> NSView? {
-        for window in NSApp.windows where String(describing: type(of: window)).contains("StatusBarWindow") {
-            if let button = find(NSStatusBarButton.self, in: window.contentView) {
-                return button
-            }
-        }
-        return nil
-    }
-
-    private static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
-        guard let view else { return nil }
-        if let match = view as? T { return match }
-        for child in view.subviews {
-            if let match = find(type, in: child) { return match }
-        }
-        return nil
+        StatusItem.shared.button
     }
 }
 
