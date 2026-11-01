@@ -63,12 +63,7 @@ struct MenuView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
-                Capsule()
-                    .fill(awake.isActive ? Color.accentColor : Color.secondary.opacity(0.3))
-                    .frame(width: 38, height: 22)
-                    .overlay(alignment: awake.isActive ? .trailing : .leading) {
-                        Circle().fill(.white).padding(2).shadow(radius: 1)
-                    }
+                SwitchKnob(isOn: awake.isActive)
             }
             .padding(12)
             .contentShape(Rectangle())
@@ -217,30 +212,30 @@ struct MenuView: View {
     }
 
     private var lidToggle: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "laptopcomputer")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(lid.sleepDisabled ? Color.accentColor : Color.secondary)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Keep running with lid closed")
-                    .font(.system(size: 12, weight: .semibold))
-                Text(lidSubtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+        Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { lid.setEnabled(!prefs.lidAwakeOnPower) }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "laptopcomputer")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(lid.sleepDisabled ? Color.accentColor : Color.secondary)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Keep running with lid closed")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(lidSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                SwitchKnob(isOn: prefs.lidAwakeOnPower, width: 32, height: 18)
             }
-            Spacer()
-            Toggle("", isOn: Binding(
-                get: { prefs.lidAwakeOnPower },
-                set: { lid.setEnabled($0) }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .labelsHidden()
+            .padding(10)
+            .contentShape(Rectangle())
         }
-        .padding(10)
+        .buttonStyle(.plain)
         .glassCard()
         .help("When the charger is connected, the Mac won't sleep when you close the lid, so the terminal, downloads and everything else keep running. On battery it sleeps as usual.")
     }
@@ -283,6 +278,21 @@ struct MenuView: View {
         guard let interval = DurationText.parse(customText) else { return }
         start(interval)
         customText = ""
+    }
+}
+
+struct SwitchKnob: View {
+    let isOn: Bool
+    var width: CGFloat = 38
+    var height: CGFloat = 22
+
+    var body: some View {
+        Capsule()
+            .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.3))
+            .frame(width: width, height: height)
+            .overlay(alignment: isOn ? .trailing : .leading) {
+                Circle().fill(.white).padding(2).shadow(radius: 1)
+            }
     }
 }
 
