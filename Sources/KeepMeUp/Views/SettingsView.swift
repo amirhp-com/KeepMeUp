@@ -567,35 +567,64 @@ struct AboutView: View {
     @ObservedObject private var updater = Updater.shared
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 18) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
-                .frame(width: 96, height: 96)
-            Text("KeepMeUp").font(.title).bold()
-            Text("Version \(updater.currentVersion)").foregroundStyle(.secondary)
-            Text("Free and open source. Keep your Mac awake, on your terms.")
-                .multilineTextAlignment(.center)
-            HStack(spacing: 16) {
-                Link("AmirhpCom", destination: URL(string: "https://amirhp.com")!)
-                Link("GitHub", destination: URL(string: "https://github.com/amirhp-com/KeepMeUp")!)
+                .frame(width: 144, height: 144)
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+
+            VStack(spacing: 6) {
+                Text("KeepMeUp")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text("Version \(updater.currentVersion)")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
+
+            Text("Free and open source.\nKeep your Mac awake, on your terms.")
+                .font(.system(size: 15))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+
+            HStack(spacing: 10) {
+                Button {
+                    NSWorkspace.shared.open(URL(string: "https://amirhp.com")!)
+                } label: {
+                    Label("AmirhpCom", systemImage: "person.crop.circle")
+                }
+                .compatGlassButton()
+                Button {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/amirhp-com/KeepMeUp")!)
+                } label: {
+                    Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                .compatGlassButton()
+            }
+            .controlSize(.large)
             .noFocusRing()
 
             UpdatePanel()
-                .padding(.top, 6)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: 320)
+                .glassCard()
 
             HStack(spacing: 4) {
                 Text("© 2026")
                 Link("AmirhpCom", destination: URL(string: "https://amirhp.com")!)
                 Text("· Released under the MIT License.")
             }
-            .font(.caption)
+            .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .noFocusRing()
-            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
-        .padding(24)
+        .padding(.horizontal, 24)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
     }
 }
 
@@ -620,7 +649,9 @@ struct UpdatePanel: View {
             case .checking:
                 ProgressView().controlSize(.small)
             case .upToDate:
-                Label("You're up to date", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                Label("You're up to date", systemImage: "checkmark.seal.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.green)
                 Button("Check Again") { updater.check() }
             case .failed(let message):
                 Text(message).font(.caption).foregroundStyle(.red).multilineTextAlignment(.center)
