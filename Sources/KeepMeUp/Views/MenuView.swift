@@ -74,10 +74,18 @@ struct MenuView: View {
 
     private func countdown(remaining: TimeInterval, action: PowerAction) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: action.symbol)
-                .font(.system(size: 18, weight: .medium))
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(Color.accentColor.opacity(0.18)))
+            ZStack {
+                Circle()
+                    .stroke(Color.accentColor.opacity(0.18), lineWidth: 4)
+                Circle()
+                    .trim(from: 0, to: scheduler.progress)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: scheduler.progress)
+                Image(systemName: action.symbol)
+                    .font(.system(size: 17, weight: .medium))
+            }
+            .frame(width: 46, height: 46)
             VStack(alignment: .leading, spacing: 1) {
                 Text(action.countdownTitle).font(.caption).foregroundStyle(.secondary)
                 Text(DurationText.format(remaining))

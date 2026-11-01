@@ -6,11 +6,17 @@ final class Scheduler: ObservableObject {
     @Published private(set) var fireDate: Date?
     @Published private(set) var action: PowerAction?
     @Published private(set) var now = Date()
+    private(set) var duration: TimeInterval = 0
 
     private var timer: Timer?
     private var ticker: Timer?
 
     private init() {}
+
+    var progress: Double {
+        guard let remaining, duration > 0 else { return 0 }
+        return min(1, max(0, remaining / duration))
+    }
 
     var remaining: TimeInterval? {
         guard let fireDate else { return nil }
@@ -22,6 +28,7 @@ final class Scheduler: ObservableObject {
         guard interval > 0 else { return }
         let date = Date().addingTimeInterval(interval)
         self.action = action
+        duration = interval
         fireDate = date
         now = Date()
         let fire = Timer(fire: date, interval: 0, repeats: false) { [weak self] _ in
