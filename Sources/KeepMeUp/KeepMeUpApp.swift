@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TelegramBot.shared.startIfEnabled()
         Updater.shared.startAutomaticChecks()
         ScheduleStore.shared.start()
+        LidManager.shared.start()
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             AlertMonitor.shared.start()
         }
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         let wasActive = AwakeManager.shared.isActive
         AwakeManager.shared.disable()
+        LidManager.shared.restoreOnQuit()
         Preferences.shared.lastActive = wasActive
     }
 }

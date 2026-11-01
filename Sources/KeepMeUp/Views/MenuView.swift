@@ -6,6 +6,7 @@ struct MenuView: View {
     @ObservedObject private var updater = Updater.shared
     @ObservedObject private var bot = TelegramBot.shared
     @ObservedObject private var prefs = Preferences.shared
+    @ObservedObject private var lid = LidManager.shared
 
     @State private var action: PowerAction = .stopAwake
     @State private var customText = ""
@@ -23,6 +24,7 @@ struct MenuView: View {
             if updater.updateAvailable, let latest = updater.latest {
                 updateBanner(latest)
             }
+            lidToggle
             footer
             if prefs.botEnabled {
                 telegramStatus
@@ -208,6 +210,38 @@ struct MenuView: View {
         case .stopped:
             EmptyView()
         }
+    }
+
+    private var lidToggle: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "laptopcomputer")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(lid.sleepDisabled ? Color.accentColor : Color.secondary)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Lid closed on charger")
+                    .font(.system(size: 12, weight: .semibold))
+                Text(lidSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { prefs.lidAwakeOnPower },
+                set: { lid.setEnabled($0) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .labelsHidden()
+        }
+        .padding(10)
+        .glassCard()
+    }
+
+    private var lidSubtitle: String {
+        if !prefs.lidAwakeOnPower { return "Sleeps when you close the lid" }
+        return lid.sleepDisabled ? "Keeps running with the lid closed" : "Waiting for the charger"
     }
 
     private var footer: some View {

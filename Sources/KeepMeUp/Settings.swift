@@ -86,6 +86,10 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(onlineAlert, forKey: "onlineAlert") }
     }
 
+    @Published var lidAwakeOnPower: Bool {
+        didSet { defaults.set(lidAwakeOnPower, forKey: "lidAwakeOnPower") }
+    }
+
     var allowedChatIDs: [Int64] { allowedChats.map(\.id) }
 
     func isAllowed(_ id: Int64) -> Bool {
@@ -124,6 +128,7 @@ final class Preferences: ObservableObject {
         batteryAlerts = defaults.bool(forKey: "batteryAlerts")
         powerAlerts = defaults.bool(forKey: "powerAlerts")
         onlineAlert = defaults.bool(forKey: "onlineAlert")
+        lidAwakeOnPower = defaults.bool(forKey: "lidAwakeOnPower")
         if let data = defaults.data(forKey: "allowedChats"),
            let chats = try? JSONDecoder().decode([ChatInfo].self, from: data) {
             allowedChats = chats

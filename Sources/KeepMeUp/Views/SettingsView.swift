@@ -63,6 +63,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @ObservedObject private var prefs = Preferences.shared
+    @ObservedObject private var lid = LidManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
@@ -89,6 +90,32 @@ struct GeneralSettingsView: View {
                 Toggle("Resume keeping awake after relaunch", isOn: $prefs.restoreOnLaunch)
             } footer: {
                 Text("While active, KeepMeUp blocks display sleep, the screensaver and idle system sleep, no matter what Energy or Lock Screen settings say.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section {
+                Toggle("Stay awake with the lid closed while charging", isOn: Binding(
+                    get: { prefs.lidAwakeOnPower },
+                    set: { lid.setEnabled($0) }
+                ))
+                if prefs.lidAwakeOnPower {
+                    Label(lid.sleepDisabled ? "Active now: closing the lid won't sleep this Mac" : "Waiting for the charger",
+                          systemImage: lid.sleepDisabled ? "checkmark.circle.fill" : "powerplug")
+                        .font(.caption)
+                        .foregroundStyle(lid.sleepDisabled ? Color.green : Color.secondary)
+                }
+                if let error = lid.lastError {
+                    Text(error).font(.caption).foregroundStyle(.red)
+                }
+                if lid.helperInstalled && !prefs.lidAwakeOnPower {
+                    Button("Remove lid permission") { lid.removeHelper() }
+                }
+            } header: {
+                Text("Closed lid")
+            } footer: {
+                Text("When the charger is connected, the Mac doesn't sleep at all, so the terminal, downloads and anything else keep running after you close the lid. On battery, it sleeps as usual. Setup asks for your password once.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
