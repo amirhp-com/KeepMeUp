@@ -219,12 +219,13 @@ struct MenuView: View {
                 .foregroundStyle(lid.sleepDisabled ? Color.accentColor : Color.secondary)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 1) {
-                Text("Lid closed on charger")
+                Text("Keep running with lid closed")
                     .font(.system(size: 12, weight: .semibold))
                 Text(lidSubtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Toggle("", isOn: Binding(

@@ -101,12 +101,12 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                Toggle("Stay awake with the lid closed while charging", isOn: Binding(
+                Toggle("Keep running with the lid closed (while charging)", isOn: Binding(
                     get: { prefs.lidAwakeOnPower },
                     set: { lid.setEnabled($0) }
                 ))
                 if prefs.lidAwakeOnPower {
-                    Label(lid.sleepDisabled ? "Active now: closing the lid won't sleep this Mac" : "Waiting for the charger",
+                    Label(lid.sleepDisabled ? "On now: you can close the lid and apps keep running" : "Starts when you plug in the charger",
                           systemImage: lid.sleepDisabled ? "checkmark.circle.fill" : "powerplug")
                         .font(.caption)
                         .foregroundStyle(lid.sleepDisabled ? Color.green : Color.secondary)
