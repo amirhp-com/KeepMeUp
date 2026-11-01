@@ -32,6 +32,7 @@
   - start the screensaver
   - lock the screen
   - sleep, restart or shut down
+- **Lid closed on charger.** Turn it on and, while the charger is connected, your Mac keeps running with the lid closed: terminals, builds, downloads and everything else carry on. It uses the system sleep switch (`pmset disablesleep`), not an app-level assertion, and switches back as soon as you unplug, so the Mac sleeps normally on battery. Setup asks for your password once.
 - **Quick actions.** Display off, screensaver, lock and sleep, one click each from the menu.
 - **Telegram remote control.** From your phone you can keep it awake, set timers, lock, sleep and shut down, take screenshots and camera photos, show the desktop, open and quit apps, control volume and media, adjust brightness, read or set the clipboard, check Wi-Fi and IP, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
 - **Alerts and schedules.** Get a Telegram message when the battery runs low, the charger is plugged or unplugged, or the Mac comes online, and repeat actions on a daily schedule (like sleep every weekday at 1 AM).
