@@ -8,6 +8,9 @@ struct ChangelogEntry: Identifiable {
 
 enum Changelog {
     static let entries: [ChangelogEntry] = [
+        ChangelogEntry(version: "1.5.5", items: [
+            "The timer's Cancel button shows properly again.",
+        ]),
         ChangelogEntry(version: "1.5.4", items: [
             "Settings matches the menu's glass and color.",
             "A running timer shows its progress as a ring.",
