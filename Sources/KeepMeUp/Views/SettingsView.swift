@@ -584,10 +584,13 @@ struct AboutView: View {
                     .background(Capsule().fill(Color.primary.opacity(0.08)))
             }
 
-            Text("Free and open source.\nKeep your Mac awake, on your terms.")
-                .font(.system(size: 15))
+            Text("A free, open-source menu bar app that keeps your Mac awake for as long as you need: with timers, with the lid closed while charging, and from your phone over Telegram. No accounts, no servers, no tracking.")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
 
             HStack(spacing: 10) {
                 Button {
@@ -612,6 +615,8 @@ struct AboutView: View {
                 .frame(maxWidth: 320)
                 .glassCard()
 
+            ChangelogCard()
+
             HStack(spacing: 4) {
                 Text("© 2026")
                 Link("AmirhpCom", destination: URL(string: "https://amirhp.com")!)
@@ -625,6 +630,33 @@ struct AboutView: View {
         .padding(.horizontal, 24)
         .padding(.top, 28)
         .padding(.bottom, 24)
+    }
+}
+
+struct ChangelogCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("What's new", systemImage: "sparkles")
+                .font(.system(size: 15, weight: .semibold))
+            ForEach(Changelog.entries) { entry in
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Version \(entry.version)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(entry.items, id: \.self) { item in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Circle().fill(Color.accentColor).frame(width: 5, height: 5)
+                            Text(item)
+                                .font(.system(size: 13))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .glassCard()
     }
 }
 
