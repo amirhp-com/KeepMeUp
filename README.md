@@ -34,7 +34,7 @@
   - sleep, restart or shut down
 - **Lid closed on charger.** Turn it on and, while the charger is connected, your Mac keeps running with the lid closed: terminals, builds, downloads and everything else carry on. It uses the system sleep switch (`pmset disablesleep`), not an app-level assertion, and switches back as soon as you unplug, so the Mac sleeps normally on battery. Setup asks for your password once.
 - **Quick actions.** Display off, screensaver, lock and sleep, one click each from the menu.
-- **Telegram remote control.** From your phone you can keep it awake, set timers, lock, sleep and shut down, take screenshots and camera photos, show the desktop, open and quit apps, control volume and media, adjust brightness, read or set the clipboard, check Wi-Fi and IP, run shell commands, and find files and send them to the chat. You choose which commands are allowed.
+- **Telegram remote control.** From your phone you can keep it awake, set timers, lock, sleep and shut down, take screenshots and camera photos, show the desktop, open and quit apps, control volume and media, adjust brightness, read or set the clipboard, check Wi-Fi and IP, run shell commands, switch between Terminal tabs and type into them, ask Claude Code and get its answer back, and find files and send them to the chat. You choose which commands are allowed.
 - **Alerts and schedules.** Get a Telegram message when the battery runs low, the charger is plugged or unplugged, or the Mac comes online, and repeat actions on a daily schedule (like sleep every weekday at 1 AM).
 - **Private by design.** Your bot token is stored in a file only your user account can read, and only chats you approve can send commands. Powerful commands are off by default, and turning one on asks for your password or Touch ID. There are no servers, analytics or accounts.
 - **Launch at login**, and keep-awake can resume after a restart.
@@ -122,6 +122,17 @@ You can turn any command on or off in **Settings → Commands**. Commands that a
 | `/terminal` | Opens Terminal |
 | `/term <command>` 🛡 | Runs a command in a Terminal window and sends a screenshot |
 | `/run <command>` 🛡 | Runs a shell command and replies with the output (60-second limit; long output arrives as a file) |
+| `/tabs` 🛡 | Lists every Terminal window and tab, with tappable `/tab_N` links |
+| `/tab <n>` 🛡 | Switches to that tab, brings its window to the front and sends a screenshot of it |
+| `/type <text>` 🛡 | Types the text into the chosen tab (or the front tab) and presses Return, then sends a screenshot. Works for shell commands and for a Claude Code session running in that tab |
+| `/pick <n>` 🛡 | Chooses option N in a menu shown in the tab, like Claude Code asking for permission |
+| `/ctrlc` 🛡 | Presses Control-C in the chosen tab |
+| `/screen` 🛡 | Sends a screenshot of the chosen tab's window |
+| `/read [lines]` 🛡 | Sends the tab's text (last 40 lines by default), which is easier to read on a phone |
+| `/claude <prompt>` 🛡 | Runs Claude Code on the Mac (`claude -p`) in the folder from `/claudedir` and sends the answer when it's ready. Each `/claude` continues the same conversation |
+| `/answer` 🛡 | Shows the last answer again, or how long Claude has been working |
+| `/claudenew` · `/claudestop` 🛡 | Starts a new conversation, or stops the running request |
+| `/claudedir [folder]` 🛡 | Shows or sets the folder Claude works in (`/claudedir ~/Documents/GitHub/app`) |
 | `/find <name>` 🛡 | Searches your whole home folder with Spotlight. Each result has tappable `/get_N` and `/openfile_N` links |
 | `/desk [name]` 🛡 | Searches Desktop, or lists its newest items when no name is given |
 | `/docs [name]` 🛡 | Searches Documents, or lists its newest items |
@@ -138,8 +149,8 @@ Durations can be written as `30` (minutes), `45m`, `2h`, `1h30m`, `90s` or `1:30
 | Permission | Needed for | Where |
 | --- | --- | --- |
 | Automation → System Events | Restart and shut down | Asked the first time you use them |
-| Automation → Terminal | `/term` | Asked the first time you use it |
-| Screen Recording | `/screenshot`, `/term` | System Settings → Privacy & Security → Screen Recording |
+| Automation → Terminal | `/term`, `/tabs`, `/tab`, `/type`, `/pick`, `/ctrlc`, `/read` | Asked the first time you use them |
+| Screen Recording | `/screenshot`, `/term`, `/tab`, `/type`, `/screen` | System Settings → Privacy & Security → Screen Recording |
 | Camera | `/webcam` | Asked the first time, or System Settings → Privacy & Security → Camera |
 | Files & Folders | `/find`, `/get`, file lists | Asked per folder, or System Settings → Privacy & Security |
 
@@ -148,7 +159,10 @@ Keeping the Mac awake, display off, screensaver, lock and sleep don't need any p
 ## FAQ
 
 **Does it work with the lid closed?**
-macOS sleeps a closed MacBook unless an external display, keyboard and power adapter are connected (clamshell mode). KeepMeUp follows the same rule.
+Yes, while the charger is connected. Turn on **Keep running with lid closed** in the menu. Telegram, `/tabs`, `/type`, `/read` and `/claude` keep working with the lid shut. Screenshots may come back black while the built-in display is off, so use `/read` to see a tab as text. On battery, macOS sleeps a closed MacBook as usual.
+
+**How does Claude Code from Telegram work?**
+There are two ways. `/claude <prompt>` runs Claude Code in the background with `claude -p` and sends the answer to your chat. In Settings → Commands you choose whether it may only read and answer, edit files, or do anything. To drive a Claude session that's already open in Terminal, send `/tabs`, pick it with `/tab_N`, type with `/type`, answer permission prompts with `/pick 1`, and check on it later with `/read` or `/screen`.
 
 **How do I check that it's working?**
 Run `pmset -g assertions` in Terminal. While KeepMeUp is active, you'll see its `PreventUserIdleDisplaySleep` and `PreventUserIdleSystemSleep` entries.
