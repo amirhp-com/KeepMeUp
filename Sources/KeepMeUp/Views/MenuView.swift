@@ -237,16 +237,18 @@ struct MenuView: View {
         }
         .padding(10)
         .glassCard()
+        .help("When the charger is connected, the Mac won't sleep when you close the lid, so the terminal, downloads and everything else keep running. On battery it sleeps as usual.")
     }
 
     private var lidSubtitle: String {
-        if !prefs.lidAwakeOnPower { return "Sleeps when you close the lid" }
-        return lid.sleepDisabled ? "Keeps running with the lid closed" : "Waiting for the charger"
+        if !prefs.lidAwakeOnPower { return "Off · closing the lid puts the Mac to sleep" }
+        return lid.sleepDisabled ? "On · you can close the lid, apps keep running" : "Starts when you plug in the charger"
     }
 
     private var footer: some View {
         HStack {
             Button {
+                StatusItem.shared.close()
                 SettingsWindow.show()
             } label: {
                 Label("Settings", systemImage: "gearshape")
