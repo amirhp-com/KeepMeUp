@@ -8,6 +8,11 @@ struct ChangelogEntry: Identifiable {
 
 enum Changelog {
     static let entries: [ChangelogEntry] = [
+        ChangelogEntry(version: "1.6.0", items: [
+            "Switch between Terminal windows and tabs from Telegram, type into them, answer menus and see them as a screenshot or text.",
+            "Ask Claude Code from Telegram with /claude and get the answer back in the chat.",
+            "All of it keeps working with the lid closed while charging.",
+        ]),
         ChangelogEntry(version: "1.5.5", items: [
             "The timer's Cancel button shows properly again.",
         ]),
