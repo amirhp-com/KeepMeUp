@@ -24,6 +24,29 @@ enum PowerAction: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var countdownTitle: String {
+        switch self {
+        case .stopAwake: return "Staying awake for"
+        case .displayOff: return "Display turns off in"
+        case .screensaver: return "Screensaver starts in"
+        case .lock: return "Screen locks in"
+        case .sleep: return "Mac goes to sleep in"
+        case .restart: return "Mac restarts in"
+        case .shutdown: return "Mac shuts down in"
+        }
+    }
+
+    var countdownDetail: String {
+        switch self {
+        case .stopAwake: return "Then your Mac follows its normal sleep settings again."
+        case .displayOff: return "Only the screen turns off. Apps keep running."
+        case .screensaver: return "Only the screen changes. Apps keep running."
+        case .lock: return "Apps keep running behind the lock screen."
+        case .sleep: return "Apps stay open and resume when you wake it."
+        case .restart, .shutdown: return "Save your work first. Open apps will quit."
+        }
+    }
+
     var symbol: String {
         switch self {
         case .stopAwake: return "cup.and.saucer"

@@ -83,11 +83,15 @@ struct MenuView: View {
                 .font(.system(size: 18, weight: .medium))
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Color.accentColor.opacity(0.18)))
-            VStack(alignment: .leading, spacing: 0) {
-                Text(action.title).font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(action.countdownTitle).font(.caption).foregroundStyle(.secondary)
                 Text(DurationText.format(remaining))
                     .font(.system(size: 26, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                Text(action.countdownDetail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button("Cancel") { scheduler.cancel() }
