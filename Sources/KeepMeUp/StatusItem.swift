@@ -72,28 +72,6 @@ struct VisualEffect: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
-struct WindowBackdrop: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            glass.cornerRadius = 0
-            glass.tintColor = NSColor(name: nil) { appearance in
-                appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                    ? NSColor.black.withAlphaComponent(0.45)
-                    : NSColor.white.withAlphaComponent(0.55)
-            }
-            return glass
-        }
-        let view = NSVisualEffectView()
-        view.material = .popover
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
-}
-
 final class StatusItem: NSObject, NSWindowDelegate {
     static let shared = StatusItem()
 

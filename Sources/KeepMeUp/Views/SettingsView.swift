@@ -6,16 +6,32 @@ enum SettingsWindow {
 
     static func show() {
         if window == nil {
-            let hosting = NSHostingController(rootView: SettingsView())
-            hosting.sizingOptions = [.preferredContentSize]
-            let newWindow = NSWindow(contentViewController: hosting)
+            let size = NSSize(width: 480, height: 600)
+            let hosting = NSHostingView(rootView: SettingsView())
+            hosting.frame = NSRect(origin: .zero, size: size)
+            let newWindow = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
             newWindow.title = "KeepMeUp Settings"
-            newWindow.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
             newWindow.titlebarAppearsTransparent = true
-            newWindow.isOpaque = false
-            newWindow.backgroundColor = .clear
             newWindow.isMovableByWindowBackground = true
             newWindow.isReleasedWhenClosed = false
+            if #available(macOS 26.0, *) {
+                let glass = NSGlassEffectView(frame: NSRect(origin: .zero, size: size))
+                glass.cornerRadius = 0
+                glass.contentView = hosting
+                newWindow.isOpaque = false
+                newWindow.backgroundColor = .clear
+                newWindow.contentView = glass
+            } else {
+                let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+                effect.material = .popover
+                effect.blendingMode = .behindWindow
+                effect.state = .followsWindowActiveState
+                hosting.autoresizingMask = [.width, .height]
+                effect.addSubview(hosting)
+                newWindow.isOpaque = false
+                newWindow.backgroundColor = .clear
+                newWindow.contentView = effect
+            }
             newWindow.center()
             window = newWindow
         }
@@ -70,7 +86,6 @@ struct SettingsView: View {
             .clipped()
         }
         .frame(width: 480, height: 600)
-        .background(WindowBackdrop().ignoresSafeArea())
         .noFocusRing()
     }
 }
