@@ -10,7 +10,11 @@ enum SettingsWindow {
             hosting.sizingOptions = [.preferredContentSize]
             let newWindow = NSWindow(contentViewController: hosting)
             newWindow.title = "KeepMeUp Settings"
-            newWindow.styleMask = [.titled, .closable, .miniaturizable]
+            newWindow.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+            newWindow.titlebarAppearsTransparent = true
+            newWindow.isOpaque = false
+            newWindow.backgroundColor = .clear
+            newWindow.isMovableByWindowBackground = true
             newWindow.isReleasedWhenClosed = false
             newWindow.center()
             window = newWindow
@@ -57,6 +61,7 @@ struct SettingsView: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 480)
+        .background(WindowBackdrop().ignoresSafeArea())
         .noFocusRing()
     }
 }
@@ -135,6 +140,7 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .scrollDisabled(true)
     }
 }
@@ -234,6 +240,7 @@ struct TelegramSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .scrollDisabled(true)
     }
 
@@ -480,6 +487,7 @@ struct CommandsSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .frame(height: 560)
         .onAppear { Permissions.shared.refresh() }
     }
