@@ -9,6 +9,7 @@ enum SettingsWindow {
             let size = NSSize(width: 480, height: 600)
             let hosting = NSHostingView(rootView: SettingsView())
             hosting.frame = NSRect(origin: .zero, size: size)
+            hosting.sizingOptions = []
             let newWindow = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
             newWindow.title = "KeepMeUp Settings"
             newWindow.titlebarAppearsTransparent = true
@@ -58,26 +59,25 @@ struct SettingsView: View {
     @ObservedObject private var router = SettingsRouter.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            FloatingTabs(selection: $router.tab)
-                .padding(.top, 12)
-
-            ZStack(alignment: .top) {
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
                 Group {
                     switch router.tab {
                     case .general: GeneralSettingsView()
                     case .telegram: TelegramSettingsView()
                     case .commands: CommandsSettingsView()
-                    case .about: ScrollView { AboutView() }
+                    case .about: ScrollView { AboutView().padding(.bottom, 70) }
                     }
                 }
                 .id(router.tab)
                 .transition(.opacity.combined(with: .offset(y: 8)))
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+
+                FloatingTabs(selection: $router.tab)
+                    .padding(.bottom, 16)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .clipped()
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .frame(width: 480, height: 600)
         .noFocusRing()
     }
 }
@@ -126,6 +126,15 @@ struct FloatingTabs: View {
 }
 
 extension View {
+    @ViewBuilder
+    func tabBarClearance() -> some View {
+        if #available(macOS 14.0, *) {
+            contentMargins(.bottom, 64, for: .scrollContent)
+        } else {
+            safeAreaInset(edge: .bottom) { Color.clear.frame(height: 64) }
+        }
+    }
+
     @ViewBuilder
     func floatingBar() -> some View {
         if #available(macOS 26.0, *) {
@@ -213,6 +222,7 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .tabBarClearance()
     }
 }
 
@@ -312,6 +322,7 @@ struct TelegramSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .tabBarClearance()
     }
 
     private var parsedChatID: Int64? {
@@ -558,6 +569,7 @@ struct CommandsSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .tabBarClearance()
         .frame(height: 560)
         .onAppear { Permissions.shared.refresh() }
     }
