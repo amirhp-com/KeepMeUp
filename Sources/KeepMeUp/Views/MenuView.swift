@@ -86,9 +86,11 @@ struct MenuView: View {
                 Text(action.countdownDetail)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
             Button("Cancel") { scheduler.cancel() }
                 .compatGlassButton()
         }
