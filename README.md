@@ -61,10 +61,10 @@ You need the Xcode Command Line Tools (Swift 5.9+).
 git clone https://github.com/amirhp-com/KeepMeUp.git
 cd KeepMeUp
 ./scripts/build-app.sh
-open dist/KeepMeUp.app
+open dist/app.noindex/KeepMeUp.app
 ```
 
-The script builds a native `arm64` app (set `UNIVERSAL=1` to also include `x86_64` for Intel Macs), packages `dist/KeepMeUp.app` and zips it. To sign with your own Developer ID, set `SIGN_IDENTITY="Developer ID Application: …"`.
+The script builds a native `arm64` app (set `UNIVERSAL=1` to also include `x86_64` for Intel Macs), packages `dist/app.noindex/KeepMeUp.app` (kept out of Spotlight so only the copy in Applications shows up in search) and zips it to `dist/KeepMeUp.zip`. To sign with your own Developer ID, set `SIGN_IDENTITY="Developer ID Application: …"`.
 
 ## Telegram remote control
 

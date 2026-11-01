@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="KeepMeUp"
 DIST="$ROOT/dist"
-APP="$DIST/$APP_NAME.app"
+STAGE="$DIST/app.noindex"
+APP="$STAGE/$APP_NAME.app"
 
 cd "$ROOT"
 
@@ -17,7 +18,8 @@ fi
 swift build -c release "${ARCHS[@]}"
 BIN="$(swift build -c release "${ARCHS[@]}" --show-bin-path)/$APP_NAME"
 
-rm -rf "$APP"
+rm -rf "$APP" "$DIST/$APP_NAME.app"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$DIST/$APP_NAME.app" >/dev/null 2>&1 || true
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
@@ -29,9 +31,9 @@ if [ -z "${SIGN_IDENTITY:-}" ] && security find-certificate -c "KeepMeUp Release
 fi
 codesign --force --deep --options runtime --entitlements Resources/KeepMeUp.entitlements --sign "${SIGN_IDENTITY:--}" "$APP"
 
-cd "$DIST"
-rm -f "$APP_NAME.zip"
-ditto -c -k --keepParent "$APP_NAME.app" "$APP_NAME.zip"
+rm -f "$DIST/$APP_NAME.zip"
+ditto -c -k --keepParent "$APP" "$DIST/$APP_NAME.zip"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" >/dev/null 2>&1 || true
 
 if [ -f "${KEEPMEUP_KEY:-$HOME/.config/keepmeup/ed25519.key}" ]; then
     swift "$ROOT/scripts/release-key.swift" sign "$DIST/$APP_NAME.zip"
