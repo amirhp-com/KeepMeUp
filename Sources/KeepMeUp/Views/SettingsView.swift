@@ -36,33 +36,98 @@ struct SettingsView: View {
         case commands = "Commands"
         case about = "About"
         var id: String { rawValue }
+
+        var symbol: String {
+            switch self {
+            case .general: return "gearshape.fill"
+            case .telegram: return "paperplane.fill"
+            case .commands: return "terminal.fill"
+            case .about: return "info.circle.fill"
+            }
+        }
     }
 
     @ObservedObject private var router = SettingsRouter.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $router.tab) {
-                ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .padding(.top, 16)
+            FloatingTabs(selection: $router.tab)
+                .padding(.top, 12)
 
-            Group {
-                switch router.tab {
-                case .general: GeneralSettingsView()
-                case .telegram: TelegramSettingsView()
-                case .commands: CommandsSettingsView()
-                case .about: AboutView()
+            ZStack(alignment: .top) {
+                Group {
+                    switch router.tab {
+                    case .general: GeneralSettingsView()
+                    case .telegram: TelegramSettingsView()
+                    case .commands: CommandsSettingsView()
+                    case .about: ScrollView { AboutView() }
+                    }
                 }
+                .id(router.tab)
+                .transition(.opacity.combined(with: .offset(y: 8)))
             }
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .clipped()
         }
-        .frame(width: 480)
+        .frame(width: 480, height: 600)
         .background(WindowBackdrop().ignoresSafeArea())
         .noFocusRing()
+    }
+}
+
+struct FloatingTabs: View {
+    @Binding var selection: SettingsView.Tab
+    @Namespace private var namespace
+    @State private var hovered: SettingsView.Tab?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(SettingsView.Tab.allCases) { tab in
+                let selected = tab == selection
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { selection = tab }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(tab.rawValue)
+                            .font(.system(size: 12.5, weight: selected ? .semibold : .medium))
+                    }
+                    .foregroundStyle(selected ? Color.primary : Color.secondary)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 7)
+                    .background {
+                        if selected {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.14))
+                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5))
+                                .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+                                .matchedGeometryEffect(id: "pill", in: namespace)
+                        } else if hovered == tab {
+                            Capsule().fill(Color.primary.opacity(0.05))
+                        }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .onHover { inside in hovered = inside ? tab : (hovered == tab ? nil : hovered) }
+            }
+        }
+        .padding(4)
+        .floatingBar()
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func floatingBar() -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular, in: .capsule)
+        } else {
+            background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+        }
     }
 }
 
@@ -141,7 +206,6 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .scrollDisabled(true)
     }
 }
 
@@ -241,7 +305,6 @@ struct TelegramSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .scrollDisabled(true)
     }
 
     private var parsedChatID: Int64? {
