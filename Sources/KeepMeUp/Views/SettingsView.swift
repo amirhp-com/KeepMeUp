@@ -14,24 +14,16 @@ enum SettingsWindow {
             newWindow.titlebarAppearsTransparent = true
             newWindow.isMovableByWindowBackground = true
             newWindow.isReleasedWhenClosed = false
-            if #available(macOS 26.0, *) {
-                let glass = NSGlassEffectView(frame: NSRect(origin: .zero, size: size))
-                glass.cornerRadius = 0
-                glass.contentView = hosting
-                newWindow.isOpaque = false
-                newWindow.backgroundColor = .clear
-                newWindow.contentView = glass
-            } else {
-                let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-                effect.material = .popover
-                effect.blendingMode = .behindWindow
-                effect.state = .followsWindowActiveState
-                hosting.autoresizingMask = [.width, .height]
-                effect.addSubview(hosting)
-                newWindow.isOpaque = false
-                newWindow.backgroundColor = .clear
-                newWindow.contentView = effect
-            }
+            let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+            effect.material = .popover
+            effect.blendingMode = .behindWindow
+            effect.state = .active
+            hosting.frame = effect.bounds
+            hosting.autoresizingMask = [.width, .height]
+            effect.addSubview(hosting)
+            newWindow.isOpaque = false
+            newWindow.backgroundColor = .clear
+            newWindow.contentView = effect
             newWindow.center()
             window = newWindow
         }
