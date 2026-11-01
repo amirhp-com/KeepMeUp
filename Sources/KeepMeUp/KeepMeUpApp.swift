@@ -14,8 +14,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             AlertMonitor.shared.start()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            LaunchTip.show()
+        if let argument = CommandLine.arguments.first(where: { $0.hasPrefix("--settings") }) {
+            let name = argument.split(separator: "=").dropFirst().first.map(String.init)?.lowercased()
+            if let tab = SettingsView.Tab.allCases.first(where: { $0.rawValue.lowercased() == name }) {
+                SettingsRouter.shared.tab = tab
+            }
+            SettingsWindow.show()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                LaunchTip.show()
+            }
         }
     }
 
