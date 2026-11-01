@@ -77,6 +77,11 @@ struct WindowBackdrop: NSViewRepresentable {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             glass.cornerRadius = 0
+            glass.tintColor = NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                    ? NSColor.black.withAlphaComponent(0.45)
+                    : NSColor.white.withAlphaComponent(0.55)
+            }
             return glass
         }
         let view = NSVisualEffectView()
