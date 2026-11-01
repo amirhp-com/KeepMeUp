@@ -10,6 +10,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
     case say, notify, clip
     case wifi, ip
     case terminal, term, run
+    case tabs, tab, type, pick, ctrlc, screen, read
+    case claude, answer, claudenew, claudedir, claudestop
     case find, desk, docs, dl, recent, get, openfile, upload
     case schedules, schedule, unschedule
     case help
@@ -26,6 +28,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case system = "System"
         case network = "Network"
         case shell = "Terminal and shell"
+        case tabs = "Terminal tabs"
+        case claude = "Claude Code"
         case files = "Files"
         case automation = "Automation"
 
@@ -42,6 +46,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
             case .system: return "bubble.left.and.text.bubble.right"
             case .network: return "wifi"
             case .shell: return "terminal"
+            case .tabs: return "rectangle.stack"
+            case .claude: return "sparkles"
             case .files: return "folder"
             case .automation: return "clock.arrow.circlepath"
             }
@@ -59,6 +65,8 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .say, .notify, .clip: return .system
         case .wifi, .ip: return .network
         case .terminal, .term, .run: return .shell
+        case .tabs, .tab, .type, .pick, .ctrlc, .screen, .read: return .tabs
+        case .claude, .answer, .claudenew, .claudedir, .claudestop: return .claude
         case .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload: return .files
         case .schedules, .schedule, .unschedule: return .automation
         case .help: return nil
@@ -80,6 +88,12 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .clip: return "/clip [text]"
         case .term: return "/term <command>"
         case .run: return "/run <command>"
+        case .tab: return "/tab <number>"
+        case .type: return "/type <text>"
+        case .pick: return "/pick <number>"
+        case .read: return "/read [lines]"
+        case .claude: return "/claude <prompt>"
+        case .claudedir: return "/claudedir [folder]"
         case .find: return "/find <name>"
         case .desk: return "/desk [name]"
         case .docs: return "/docs [name]"
@@ -129,6 +143,18 @@ enum BotCommand: String, CaseIterable, Identifiable {
         case .terminal: return "Open Terminal"
         case .term: return "Run in Terminal and send a screenshot"
         case .run: return "Run a shell command and get the output"
+        case .tabs: return "List Terminal windows and tabs"
+        case .tab: return "Switch to a Terminal tab and see it"
+        case .type: return "Type into the chosen tab and press Return"
+        case .pick: return "Choose option N in a menu shown in the tab"
+        case .ctrlc: return "Press Control-C in the chosen tab"
+        case .screen: return "Screenshot of the chosen tab's window"
+        case .read: return "Text of the chosen tab, last lines"
+        case .claude: return "Ask Claude Code, the answer comes back here"
+        case .answer: return "Show the last Claude answer, or progress"
+        case .claudenew: return "Start a new Claude conversation"
+        case .claudedir: return "Show or set the folder Claude works in"
+        case .claudestop: return "Stop the running Claude request"
         case .find: return "Find files anywhere in your home folder"
         case .desk: return "Search Desktop, or list its newest items"
         case .docs: return "Search Documents, or list its newest items"
@@ -148,7 +174,7 @@ enum BotCommand: String, CaseIterable, Identifiable {
 
     var isSensitive: Bool {
         switch self {
-        case .run, .term, .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload, .screenshot, .webcam, .clip: return true
+        case .run, .term, .tabs, .tab, .type, .pick, .ctrlc, .screen, .read, .claude, .answer, .claudenew, .claudedir, .claudestop, .find, .desk, .docs, .dl, .recent, .get, .openfile, .upload, .screenshot, .webcam, .clip: return true
         default: return false
         }
     }

@@ -22,6 +22,8 @@ final class TelegramBot: ObservableObject {
     private var foundFiles: [Int64: [URL]] = [:]
     private var runningLists: [Int64: [(name: String, pid: pid_t)]] = [:]
     private var installedLists: [Int64: [RemoteTools.InstalledApp]] = [:]
+    private var tabLists: [Int64: [TerminalRemote.TabInfo]] = [:]
+    private var tabTargets: [Int64: String] = [:]
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 70
@@ -467,6 +469,39 @@ final class TelegramBot: ObservableObject {
             _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "typing"])
             let result = await Task.detached { RemoteTools.shell(argument) }.value
             await sendOutput(result, command: argument, to: chatID)
+        case .tabs:
+            await sendTabs(to: chatID)
+        case .tab:
+            await switchTab(argument, chatID: chatID)
+        case .type:
+            guard !argument.isEmpty else { return await reply("Usage: /type <text>\nTypes into the tab you picked with /tab (or the front tab) and presses Return.\nExample: /type git status") }
+            await typeIntoTab(chatID: chatID) { TerminalRemote.send(argument, to: $0) }
+        case .pick:
+            guard let number = args.first.flatMap(Int.init), (1...9).contains(number) else {
+                return await reply("Usage: /pick <number>\nChooses option N in a menu, like Claude asking for permission.\nExample: /pick 1")
+            }
+            await typeIntoTab(chatID: chatID) { TerminalRemote.pick(option: number, in: $0) }
+        case .ctrlc:
+            await typeIntoTab(chatID: chatID, wait: 1) { TerminalRemote.interrupt($0) }
+        case .screen:
+            guard let tab = await targetTab(chatID: chatID) else { return }
+            await sendTabView(tab, to: chatID)
+        case .read:
+            guard let tab = await targetTab(chatID: chatID) else { return }
+            let lines = max(5, min(Int(args.first ?? "") ?? 40, 200))
+            await sendTabText(tab, lines: lines, to: chatID)
+        case .claude:
+            await askClaude(argument, chatID: chatID)
+        case .answer:
+            await sendClaudeAnswer(to: chatID)
+        case .claudenew:
+            await MainActor.run { Preferences.shared.claudeSession = nil }
+            await reply("🆕 The next /claude starts a new conversation.")
+        case .claudedir:
+            await claudeFolder(argument, chatID: chatID)
+        case .claudestop:
+            let stopped = await Task.detached { ClaudeRemote.shared.stop() }.value
+            await reply(stopped ? "🛑 Stopping Claude." : "Claude isn't working on anything.")
         case .find:
             guard !argument.isEmpty else { return await reply("Usage: /find <name>\nExample: /find invoice\nSearch one folder with /desk, /docs or /dl.") }
             await search(argument, in: .home, chatID: chatID)
@@ -494,6 +529,201 @@ final class TelegramBot: ObservableObject {
             let ok = await MainActor.run { NSWorkspace.shared.open(url) }
             await reply(ok ? "📂 Opened \(url.lastPathComponent)." : "⚠️ Couldn't open \(url.lastPathComponent).")
         }
+    }
+
+    private func sendTabs(to chatID: Int64) async {
+        let result = await MainActor.run { TerminalRemote.tabs() }
+        let tabs: [TerminalRemote.TabInfo]
+        switch result {
+        case .failure(let error):
+            try? await send("⚠️ \(error.text)\nAllow KeepMeUp to control Terminal in System Settings → Privacy & Security → Automation.", to: chatID)
+            return
+        case .success(let list):
+            tabs = list
+        }
+        guard !tabs.isEmpty else {
+            try? await send("🖥 Terminal has no open windows. Send /terminal to open one.", to: chatID)
+            return
+        }
+        let target = await MainActor.run { () -> String? in
+            self.tabLists[chatID] = tabs
+            return self.tabTargets[chatID]
+        }
+        var lines: [String] = []
+        var lastWindow = -1
+        var windowNumber = 0
+        for (index, tab) in tabs.enumerated() {
+            if tab.windowID != lastWindow {
+                windowNumber += 1
+                lastWindow = tab.windowID
+                lines.append("")
+                lines.append("🪟 Window \(windowNumber)")
+            }
+            let marks = (tab.tty == target ? " 👈" : "") + (tab.busy ? " ⏳" : "")
+            lines.append("\(index + 1). \(tab.label)\(marks)  /tab_\(index + 1)")
+        }
+        await sendLong(header: "🖥 Terminal tabs — tap /tab_N to switch", lines: lines, footer: "👈 is the tab /type sends to · ⏳ is busy\nThen: /type <text> · /pick N · /ctrlc · /screen · /read", to: chatID)
+    }
+
+    private func switchTab(_ argument: String, chatID: Int64) async {
+        guard let number = Int(argument) else {
+            try? await send("Usage: /tab <number from /tabs>", to: chatID)
+            return
+        }
+        var list = await MainActor.run { self.tabLists[chatID] }
+        if list == nil, case .success(let fresh) = await MainActor.run(body: { TerminalRemote.tabs() }) {
+            list = fresh
+            await MainActor.run { self.tabLists[chatID] = fresh }
+        }
+        guard let list, number >= 1, number <= list.count else {
+            try? await send("⚠️ There's no tab #\(number). Send /tabs for a fresh list.", to: chatID)
+            return
+        }
+        let chosen = list[number - 1]
+        let result = await MainActor.run { () -> (TerminalRemote.TabInfo?, TerminalRemote.Failure?) in
+            guard let tab = TerminalRemote.find(tty: chosen.tty) else { return (nil, nil) }
+            self.tabTargets[chatID] = tab.tty
+            return (tab, TerminalRemote.select(tab))
+        }
+        guard let tab = result.0 else {
+            try? await send("⚠️ That tab was closed. Send /tabs for a fresh list.", to: chatID)
+            return
+        }
+        if let error = result.1 {
+            try? await send("⚠️ \(error.text)", to: chatID)
+            return
+        }
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        await sendTabView(tab, to: chatID)
+    }
+
+    private func targetTab(chatID: Int64) async -> TerminalRemote.TabInfo? {
+        let tab = await MainActor.run { () -> TerminalRemote.TabInfo? in
+            if let tty = self.tabTargets[chatID], let tab = TerminalRemote.find(tty: tty) { return tab }
+            self.tabTargets[chatID] = nil
+            return TerminalRemote.frontTab()
+        }
+        if tab == nil {
+            try? await send("⚠️ No Terminal tab to use. Send /terminal to open one, or allow KeepMeUp to control Terminal in System Settings → Privacy & Security → Automation.", to: chatID)
+        }
+        return tab
+    }
+
+    private func typeIntoTab(chatID: Int64, wait: Double = 2.5, _ action: @escaping @MainActor (TerminalRemote.TabInfo) -> TerminalRemote.Failure?) async {
+        guard let tab = await targetTab(chatID: chatID) else { return }
+        if let error = await MainActor.run(body: { action(tab) }) {
+            try? await send("⚠️ \(error.text)", to: chatID)
+            return
+        }
+        try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+        await sendTabView(tab, to: chatID)
+    }
+
+    private func sendTabView(_ tab: TerminalRemote.TabInfo, to chatID: Int64) async {
+        _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "upload_photo"])
+        if let url = await Task.detached(operation: { TerminalRemote.screenshot(of: tab) }).value {
+            try? await upload(file: url, method: "sendPhoto", field: "photo", mime: "image/jpeg", chatID: chatID, caption: "🖥 \(tab.label)\n/type · /pick N · /ctrlc · /screen · /read · /tabs")
+            try? FileManager.default.removeItem(at: url)
+        } else {
+            await sendTabText(tab, lines: 40, to: chatID)
+        }
+    }
+
+    private func sendTabText(_ tab: TerminalRemote.TabInfo, lines: Int, to chatID: Int64) async {
+        let text = await MainActor.run { TerminalRemote.contents(of: tab, lines: lines) }
+        guard let text else {
+            try? await send("⚠️ Couldn't read that tab.", to: chatID)
+            return
+        }
+        var body = text.isEmpty ? "(empty)" : text
+        if body.count > 3600 { body = "…\n" + String(body.suffix(3600)) }
+        _ = try? await call("sendMessage", ["chat_id": chatID, "text": "🖥 \(escape(tab.label))\n<pre>\(escape(body))</pre>", "parse_mode": "HTML"])
+    }
+
+    private func askClaude(_ prompt: String, chatID: Int64) async {
+        guard !prompt.isEmpty else {
+            try? await send("Usage: /claude <prompt>\nAsks Claude Code on this Mac. The answer comes back here when it's done, and /answer shows it again.\nExample: /claude what changed in this repo today?", to: chatID)
+            return
+        }
+        if let running = ClaudeRemote.shared.runningFor {
+            try? await send("⏳ Claude is still working on “\(running.prompt.prefix(80))” (\(DurationText.describe(TimeInterval(running.seconds)))). Wait for it, or send /claudestop.", to: chatID)
+            return
+        }
+        let (folderPath, session, access) = await MainActor.run {
+            (Preferences.shared.claudeFolder, Preferences.shared.claudeSession, ClaudeRemote.Access(rawValue: Preferences.shared.claudeAccess) ?? .ask)
+        }
+        let folder = RemoteTools.expand(folderPath)
+        try? await send("🤖 Asked Claude in \(folder.path.replacingOccurrences(of: FileManager.default.homeDirectoryForCurrentUser.path, with: "~"))\(session == nil ? " (new conversation)" : ""). I'll send the answer when it's ready.", to: chatID)
+        let typing = Task {
+            while !Task.isCancelled {
+                _ = try? await call("sendChatAction", ["chat_id": chatID, "action": "typing"])
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+            }
+        }
+        let (answer, newSession) = await Task.detached { ClaudeRemote.shared.ask(prompt, folder: folder, session: session, access: access) }.value
+        typing.cancel()
+        await MainActor.run { Preferences.shared.claudeSession = newSession }
+        await deliver(answer, to: chatID)
+    }
+
+    private func sendClaudeAnswer(to chatID: Int64) async {
+        if let running = ClaudeRemote.shared.runningFor {
+            try? await send("⏳ Claude has been working for \(DurationText.describe(TimeInterval(max(running.seconds, 1)))) on “\(running.prompt.prefix(80))”. The answer comes here when it's done.", to: chatID)
+            return
+        }
+        guard let answer = ClaudeRemote.shared.lastAnswer else {
+            try? await send("No answer yet. Ask with /claude <prompt>.", to: chatID)
+            return
+        }
+        await deliver(answer, to: chatID)
+    }
+
+    private func deliver(_ answer: ClaudeRemote.Answer, to chatID: Int64) async {
+        var footer = "⏱ \(DurationText.describe(TimeInterval(max(answer.seconds, 1))))"
+        if let cost = answer.cost { footer += String(format: " · $%.2f", cost) }
+        footer += " · reply with /claude to continue, /claudenew to start over"
+        let head = answer.failed ? "⚠️ Claude" : "🤖 Claude"
+        let full = "\(head)\n\n\(answer.text)\n\n\(footer)"
+        if full.count > 12000 {
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent("KeepMeUp", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let file = folder.appendingPathComponent("claude-\(Int(Date().timeIntervalSince1970)).md")
+            try? Data("> \(answer.prompt)\n\n\(answer.text)\n".utf8).write(to: file)
+            try? await send("\(head): the answer is long, so it's attached as a file.\n\n\(footer)", to: chatID)
+            try? await upload(file: file, method: "sendDocument", field: "document", mime: "text/markdown", chatID: chatID)
+            try? FileManager.default.removeItem(at: file)
+            return
+        }
+        var rest = Substring(full)
+        while !rest.isEmpty {
+            var chunk = rest.prefix(3900)
+            if chunk.count < rest.count, let cut = chunk.lastIndex(of: "\n"), chunk.distance(from: chunk.startIndex, to: cut) > 2000 {
+                chunk = rest[rest.startIndex..<cut]
+            }
+            try? await send(String(chunk), to: chatID)
+            rest = rest[chunk.endIndex...].drop { $0 == "\n" }
+        }
+    }
+
+    private func claudeFolder(_ argument: String, chatID: Int64) async {
+        if argument.isEmpty {
+            let path = await MainActor.run { Preferences.shared.claudeFolder }
+            try? await send("📁 Claude works in \(path)\nChange it with /claudedir ~/Documents/GitHub/project", to: chatID)
+            return
+        }
+        let url = RemoteTools.expand(argument)
+        var isFolder: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isFolder), isFolder.boolValue else {
+            try? await send("⚠️ “\(argument)” isn't a folder on this Mac.", to: chatID)
+            return
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let display = url.path.hasPrefix(home) ? "~" + url.path.dropFirst(home.count) : url.path
+        await MainActor.run {
+            Preferences.shared.claudeFolder = display
+            Preferences.shared.claudeSession = nil
+        }
+        try? await send("📁 Claude now works in \(display). The next /claude starts a new conversation there.", to: chatID)
     }
 
     private func sendRunningApps(to chatID: Int64) async {
@@ -819,7 +1049,7 @@ final class TelegramBot: ObservableObject {
         return try decode(data)
     }
 
-    private func upload(file: URL, method: String, field: String, mime: String, chatID: Int64) async throws {
+    private func upload(file: URL, method: String, field: String, mime: String, chatID: Int64, caption: String? = nil) async throws {
         let boundary = "KeepMeUp-\(UUID().uuidString)"
         var request = URLRequest(url: try endpoint(method))
         request.httpMethod = "POST"
@@ -827,6 +1057,9 @@ final class TelegramBot: ObservableObject {
         let filename = file.lastPathComponent.replacingOccurrences(of: "\"", with: "")
         var body = Data()
         body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n\(chatID)\r\n".utf8))
+        if let caption {
+            body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n\(caption.prefix(1000))\r\n".utf8))
+        }
         body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(field)\"; filename=\"\(filename)\"\r\nContent-Type: \(mime)\r\n\r\n".utf8))
         body.append(try Data(contentsOf: file))
         body.append(Data("\r\n--\(boundary)--\r\n".utf8))

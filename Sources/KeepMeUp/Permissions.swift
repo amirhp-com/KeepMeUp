@@ -37,9 +37,9 @@ enum AppPermission: String, CaseIterable, Identifiable {
 
     var detail: String {
         switch self {
-        case .screenRecording: return "For /screenshot and /term"
+        case .screenRecording: return "For /screenshot, /term and /screen"
         case .camera: return "For /webcam"
-        case .automation: return "For restart, shut down and /term"
+        case .automation: return "For restart, shut down, /term and Terminal tabs"
         case .files: return "For /find, /get and folder search"
         }
     }

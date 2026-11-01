@@ -566,6 +566,19 @@ struct CommandsSettingsView: View {
                     Label(group.rawValue, systemImage: group.symbol)
                 }
             }
+            Section {
+                TextField("Folder", text: $prefs.claudeFolder, prompt: Text("~/Documents/GitHub/project"))
+                Picker("Claude may", selection: $prefs.claudeAccess) {
+                    ForEach(ClaudeRemote.Access.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+            } header: {
+                Label("Claude Code from Telegram", systemImage: "sparkles")
+            } footer: {
+                Text("/claude runs Claude Code in this folder and sends the answer to your chat, and each /claude continues the same conversation until /claudenew. With “Read and answer only”, Claude can't change files or run commands. To drive a Claude session that's already open in Terminal, use /tabs, /tab, /type and /pick instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)

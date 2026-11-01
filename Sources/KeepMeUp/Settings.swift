@@ -90,6 +90,19 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(lidAwakeOnPower, forKey: "lidAwakeOnPower") }
     }
 
+    @Published var claudeFolder: String {
+        didSet { defaults.set(claudeFolder, forKey: "claudeFolder") }
+    }
+
+    @Published var claudeAccess: String {
+        didSet { defaults.set(claudeAccess, forKey: "claudeAccess") }
+    }
+
+    var claudeSession: String? {
+        get { defaults.string(forKey: "claudeSession") }
+        set { defaults.set(newValue, forKey: "claudeSession") }
+    }
+
     var allowedChatIDs: [Int64] { allowedChats.map(\.id) }
 
     func isAllowed(_ id: Int64) -> Bool {
@@ -129,6 +142,8 @@ final class Preferences: ObservableObject {
         powerAlerts = defaults.bool(forKey: "powerAlerts")
         onlineAlert = defaults.bool(forKey: "onlineAlert")
         lidAwakeOnPower = defaults.bool(forKey: "lidAwakeOnPower")
+        claudeFolder = defaults.string(forKey: "claudeFolder") ?? "~"
+        claudeAccess = defaults.string(forKey: "claudeAccess") ?? ClaudeRemote.Access.ask.rawValue
         if let data = defaults.data(forKey: "allowedChats"),
            let chats = try? JSONDecoder().decode([ChatInfo].self, from: data) {
             allowedChats = chats
