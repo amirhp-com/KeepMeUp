@@ -101,6 +101,7 @@ struct MenuView: View {
             .layoutPriority(1)
             Button("Cancel") { scheduler.cancel() }
                 .compatGlassButton()
+                .fixedSize()
         }
         .padding(12)
         .glassCard()
