@@ -14,7 +14,6 @@ final class LidManager: ObservableObject {
 
     private init() {
         helperInstalled = FileManager.default.fileExists(atPath: sudoersPath)
-        sleepDisabled = Self.readSleepDisabled()
     }
 
     func start() {
